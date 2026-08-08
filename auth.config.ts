@@ -24,6 +24,7 @@ export default defineConfig({
   adapter: PostgresAdapter(new Pool({ connectionString: import.meta.env.DATABASE_URL })),
   providers,
   secret: import.meta.env.AUTH_SECRET,
+  trustHost: true,
   callbacks: {
     // user.id meegeven zodat API-routes weten wie er is ingelogd
     session({ session, user }) {
