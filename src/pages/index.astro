@@ -9,6 +9,11 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Marvel Marathon</title>
 <meta name="theme-color" content="#07080c">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Marvel">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23e62429'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-size='40' font-weight='900' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -349,6 +354,15 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
   .account .meta { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
   .account .stats { margin: 1rem 0 1.4rem; color: var(--text); font-size: .95rem; }
   .account .sheet-actions { margin-bottom: .4rem; }
+  .provider-btn {
+    display: flex; align-items: center; justify-content: center; gap: .7rem;
+    width: 100%; min-height: 48px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface2);
+    color: var(--text); font-size: .95rem; font-weight: 700;
+    margin-bottom: .7rem; transition: border-color .15s;
+  }
+  .provider-btn:hover { border-color: var(--muted); }
+  .provider-btn svg { flex: none; }
   .btn-danger {
     background: none; border: none; color: var(--red); font-weight: 700;
     font-size: .9rem; padding: .8rem; width: 100%; border-radius: 8px; min-height: 44px;
@@ -877,8 +891,54 @@ const preset = new URLSearchParams(location.search).get("route");
 if (preset && ORDERS[preset]) store.order = preset;
 render();
 
-// ---------- Sessie & account-modal ----------
+// ---------- Sessie, login- & account-modal ----------
 let sessionUser = null;
+
+const SHEET_CLOSE_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+const PROVIDER_ICONS = {
+  google: `<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.7 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.2C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.4 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.2C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.2z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.6l-7.7-6c-2.1 1.4-4.8 2.3-7.5 2.3-6.3 0-11.6-4-13.5-9.6l-7.9 6.2C6.5 42.6 14.6 48 24 48z"/></svg>`,
+  apple: `<svg width="20" height="20" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>`,
+};
+
+async function signIn(provider) {
+  const { csrfToken } = await (await fetch("/api/auth/csrf")).json();
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = `/api/auth/signin/${provider}`;
+  for (const [name, value] of [["csrfToken", csrfToken], ["callbackUrl", "/"]]) {
+    const input = document.createElement("input");
+    input.type = "hidden"; input.name = name; input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+
+async function openLogin() {
+  lastFocus = document.activeElement;
+  $("sheet").innerHTML = `
+    <div class="account">
+      <button class="sheet-close" id="sheet-close" aria-label="Sluiten">${SHEET_CLOSE_SVG}</button>
+      <h3>Inloggen</h3>
+      <p class="warn">Log in om je afgevinkte titels en route te synchroniseren op al je apparaten.</p>
+      <div id="login-providers"><p class="meta">Laden…</p></div>
+    </div>`;
+  $("overlay").classList.add("open");
+  $("overlay").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  $("sheet-close").onclick = closeSheet;
+  requestAnimationFrame(() => $("sheet-close").focus());
+
+  const r = await fetch("/api/auth/providers").catch(() => null);
+  const provs = r?.ok ? Object.values(await r.json()) : [];
+  const box = $("login-providers");
+  if (!box) return; // modal alweer dicht
+  box.innerHTML = provs.length
+    ? provs.map(p => `<button class="provider-btn" data-p="${p.id}">${PROVIDER_ICONS[p.id] ?? ""} Verder met ${p.name}</button>`).join("")
+    : `<p class="meta">Inloggen is momenteel niet beschikbaar.</p>`;
+  box.querySelectorAll(".provider-btn").forEach(b =>
+    b.addEventListener("click", () => { b.disabled = true; signIn(b.dataset.p); }));
+}
 
 async function signOut() {
   const { csrfToken } = await (await fetch("/api/auth/csrf")).json();
@@ -941,6 +1001,7 @@ function confirmDelete() {
 }
 
 const authBtn = $("btn-auth");
+if (authBtn) authBtn.onclick = (e) => { e.preventDefault(); openLogin(); };
 if (authBtn) fetch("/api/auth/session")
   .then(r => r.ok ? r.json() : null)
   .then(s => {
