@@ -7,16 +7,20 @@ import type { Provider } from "@auth/core/providers";
 
 // Providers activeren zichzelf zodra hun env-variabelen bestaan (zie .env.example en README).
 const providers: Provider[] = [];
+// allowDangerousEmailAccountLinking is hier veilig: Google én Apple leveren
+// geverifieerde e-mailadressen, dus zelfde mailadres = zelfde persoon = één account.
 if (import.meta.env.AUTH_GOOGLE_ID) {
   providers.push(Google({
     clientId: import.meta.env.AUTH_GOOGLE_ID,
     clientSecret: import.meta.env.AUTH_GOOGLE_SECRET,
+    allowDangerousEmailAccountLinking: true,
   }));
 }
 if (import.meta.env.AUTH_APPLE_ID) {
   providers.push(Apple({
     clientId: import.meta.env.AUTH_APPLE_ID,
     clientSecret: import.meta.env.AUTH_APPLE_SECRET,
+    allowDangerousEmailAccountLinking: true,
   }));
 }
 
