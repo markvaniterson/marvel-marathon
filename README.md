@@ -46,9 +46,9 @@ Zodra de variabelen bestaan verschijnt de inlogknop vanzelf in de header (`/api/
 
 Vereist een betaald Apple Developer-account ($99/jaar): maak op developer.apple.com een App ID + Services ID + key voor "Sign in with Apple", genereer daarmee het client-secret (JWT), en vul `AUTH_APPLE_ID` / `AUTH_APPLE_SECRET`. Redirect URI: `https://JOUW-DOMEIN/api/auth/callback/apple` (Apple staat geen localhost toe).
 
-## Nog te bouwen
+## Account-sync
 
-- Sync van afgevinkte titels naar de `watched`-tabel zodra login live is (nu: localStorage).
+Ingelogde gebruikers krijgen hun afgevinkte titels en gekozen route gesynchroniseerd via `/api/state` (GET haalt op, PUT slaat op). Bij het laden worden server- en localStorage-staat samengevoegd (unie), daarna is elke wijziging direct persistent. Zonder login werkt alles gewoon op localStorage.
 
 ## Credits
 

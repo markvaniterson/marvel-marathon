@@ -557,10 +557,39 @@ const store = {
     const w = this.watched;
     w.has(id) ? w.delete(id) : w.add(id);
     localStorage.setItem("mm-watched", JSON.stringify([...w]));
+    pushState();
   },
   get order() { return localStorage.getItem("mm-order"); },
-  set order(v) { v ? localStorage.setItem("mm-order", v) : localStorage.removeItem("mm-order"); },
+  set order(v) {
+    v ? localStorage.setItem("mm-order", v) : localStorage.removeItem("mm-order");
+    pushState();
+  },
 };
+
+// ---------- Account-sync (localStorage blijft de bron; server volgt voor ingelogde gebruikers) ----------
+let loggedIn = false;
+function pushState() {
+  if (!loggedIn) return;
+  fetch("/api/state", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ watched: [...store.watched], route: store.order }),
+  }).catch(() => {});
+}
+async function syncFromServer() {
+  try {
+    const r = await fetch("/api/state");
+    if (!r.ok) return;
+    const s = await r.json();
+    const local = store.watched;
+    const union = new Set([...s.watched, ...local]);
+    localStorage.setItem("mm-watched", JSON.stringify([...union]));
+    // Route: server wint (ander apparaat kan hem gewijzigd hebben), tenzij daar nog niets staat
+    if (s.route && ORDERS[s.route]) localStorage.setItem("mm-order", s.route);
+    if (union.size !== s.watched.length || s.route !== store.order) pushState();
+    render();
+  } catch {}
+}
 
 const $ = (id) => document.getElementById(id);
 const poster = (f, w = "w342") => IMG + w + "/" + f.po;
@@ -836,11 +865,13 @@ if (authBtn) fetch("/api/auth/session")
   .then(r => r.ok ? r.json() : null)
   .then(s => {
     if (!s?.user) return;
+    loggedIn = true;
     authBtn.href = "/api/auth/signout";
     authBtn.setAttribute("aria-label", `Uitloggen (${s.user.name || s.user.email})`);
     authBtn.title = "Uitloggen";
     if (s.user.image) authBtn.innerHTML =
       `<img src="${s.user.image}" alt="" style="width:26px;height:26px;border-radius:50%">`;
+    syncFromServer();
   })
   .catch(() => {});
 </script>
