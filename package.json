@@ -17,5 +17,8 @@
     "astro": "^5.0.0",
     "auth-astro": "^4.2.0",
     "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "jose": "^6.2.8"
   }
 }
