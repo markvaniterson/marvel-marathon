@@ -32,6 +32,7 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  button, a { touch-action: manipulation; }
   html { background: var(--bg); }
   body {
     background: var(--bg);
@@ -128,7 +129,7 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
   .wordmark b { background: var(--red); color: #fff; padding: .05rem .45rem .0rem; border-radius: 3px; font-weight: 400; }
   .wordmark span { color: var(--text); }
   .bar .spacer { flex: 1; }
-  .counter { font-family: var(--display); font-size: 1.25rem; letter-spacing: .06em; color: var(--text); }
+  .counter { font-family: var(--display); font-size: 1.25rem; letter-spacing: .06em; color: var(--text); white-space: nowrap; }
   .counter em { font-style: normal; color: var(--muted); }
   .icon-btn {
     background: none; border: 1px solid var(--line); color: var(--muted);
@@ -136,7 +137,7 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
     display: flex; align-items: center; justify-content: center;
     transition: border-color .15s, color .15s;
   }
-  .icon-btn:hover { border-color: var(--red); color: var(--text); }
+  @media (hover: hover) { .icon-btn:hover { border-color: var(--red); color: var(--text); } }
   .progress-track { height: 3px; background: var(--surface2); }
   .progress-track i { display: block; height: 100%; background: var(--red); transition: width .5s cubic-bezier(.22,.9,.3,1); }
 
@@ -219,9 +220,11 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
   }
   .btn svg { flex: none; }
   .btn-primary { background: var(--red); color: #fff; box-shadow: 0 8px 24px rgba(230,36,41,.35); }
-  .btn-primary:hover { background: #f03338; }
   .btn-ghost { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid rgba(255,255,255,.18); }
-  .btn-ghost:hover { border-color: rgba(255,255,255,.45); }
+  @media (hover: hover) {
+    .btn-primary:hover { background: #f03338; }
+    .btn-ghost:hover { border-color: rgba(255,255,255,.45); }
+  }
 
   .hero.finale { background: linear-gradient(150deg, #a3141a, #4b070a); border-color: #b8353a; }
   .hero.finale .content { padding-top: 2.2rem; display: block; }
@@ -305,7 +308,7 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
     backdrop-filter: blur(6px);
     transition: border-color .15s, background .15s;
   }
-  .play-trailer:hover { border-color: var(--red); background: rgba(230,36,41,.25); }
+  @media (hover: hover) { .play-trailer:hover { border-color: var(--red); background: rgba(230,36,41,.25); } }
   #trailer {
     position: fixed; inset: 0; z-index: 80; background: #000;
     display: none;
@@ -361,13 +364,13 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
     color: var(--text); font-size: .95rem; font-weight: 700;
     margin-bottom: .7rem; transition: border-color .15s;
   }
-  .provider-btn:hover { border-color: var(--muted); }
+  @media (hover: hover) { .provider-btn:hover { border-color: var(--muted); } }
   .provider-btn svg { flex: none; }
   .btn-danger {
     background: none; border: none; color: var(--red); font-weight: 700;
     font-size: .9rem; padding: .8rem; width: 100%; border-radius: 8px; min-height: 44px;
   }
-  .btn-danger:hover { background: rgba(230,36,41,.12); }
+  @media (hover: hover) { .btn-danger:hover { background: rgba(230,36,41,.12); } }
   .account .warn { color: var(--muted); font-size: .9rem; line-height: 1.5; max-width: 40ch; margin: 0 auto 1.2rem; }
   .account .warn b { color: var(--text); }
 
@@ -388,7 +391,25 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
     background: none; border: none; color: var(--red); font-weight: 700;
     font-size: .9rem; padding: .55rem .6rem; white-space: nowrap; border-radius: 8px;
   }
-  .toast button:hover { background: rgba(230,36,41,.12); }
+  @media (hover: hover) { .toast button:hover { background: rgba(230,36,41,.12); } }
+
+  /* ================= iOS-installatiebanner ================= */
+  .a2hs {
+    position: fixed; left: .8rem; right: .8rem;
+    bottom: max(.8rem, env(safe-area-inset-bottom));
+    z-index: 65; display: none; gap: .7rem; align-items: center;
+    background: var(--surface2); border: 1px solid var(--line); border-radius: 12px;
+    padding: .8rem .4rem .8rem 1rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,.55);
+    font-size: .88rem; line-height: 1.45;
+  }
+  .a2hs.show { display: flex; }
+  .a2hs .share-icon { flex: none; color: var(--red); }
+  .a2hs svg.inline { vertical-align: -3px; }
+  .a2hs button {
+    background: none; border: none; color: var(--muted); flex: none;
+    min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;
+  }
 
   /* ================= Desktop ================= */
   @media (min-width: 760px) {
@@ -470,6 +491,16 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <iframe id="trailer-frame" src="" title="Trailer" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
   <button class="sheet-close" id="trailer-close" aria-label="Trailer sluiten">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+</div>
+
+<div class="a2hs" id="a2hs">
+  <svg class="share-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+  <span>Zet Marvel Marathon op je beginscherm: tik op
+    <svg class="inline" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+    en kies <b>‘Zet op beginscherm’</b>.</span>
+  <button id="a2hs-close" aria-label="Sluiten">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
   </button>
 </div>
 
@@ -885,6 +916,18 @@ $("toast-undo").addEventListener("click", () => {
   $("toast").classList.remove("show");
   render();
 });
+
+// ---------- iOS "Zet op beginscherm"-hint ----------
+(function a2hs() {
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (!isIOS || standalone || localStorage.getItem("mm-a2hs")) return;
+  $("a2hs").classList.add("show");
+  $("a2hs-close").onclick = () => {
+    localStorage.setItem("mm-a2hs", "1");
+    $("a2hs").classList.remove("show");
+  };
+})();
 
 // ---------- Init ----------
 const preset = new URLSearchParams(location.search).get("route");
