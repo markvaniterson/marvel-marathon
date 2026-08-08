@@ -193,7 +193,13 @@
     background: var(--surface2);
   }
   .hero .info { min-width: 0; }
-  .hero h3 { font-family: var(--display); font-weight: 400; font-size: clamp(1.9rem, 7.5vw, 3rem); letter-spacing: .03em; line-height: .95; }
+  .hero h3 {
+    font-family: var(--display); font-weight: 400;
+    font-size: clamp(1.9rem, 7.5vw, 3rem); letter-spacing: .03em; line-height: .95;
+    /* Vaste ruimte voor 3 regels, titel onderin verankerd: de Gekeken-knop
+       blijft zo op dezelfde plek, ook bij korte titels als "Iron Man" */
+    min-height: 2.85em; display: flex; align-items: flex-end;
+  }
   .hero .meta { color: var(--muted); font-size: .85rem; margin-top: .35rem; }
   .hero .meta b { color: var(--text); font-weight: 600; }
   .hero .cta { display: flex; gap: .6rem; margin-top: .9rem; flex-wrap: wrap; }
