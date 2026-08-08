@@ -339,6 +339,24 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
   .btn-undo { background: var(--surface2); color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font-weight: 700; }
   .btn-undo:hover { color: var(--text); border-color: var(--muted); }
 
+  /* ================= Account-modal ================= */
+  .account { position: relative; padding: 2.2rem 1.5rem 1.6rem; text-align: center; }
+  .account .avatar {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto .9rem;
+    box-shadow: 0 10px 26px rgba(0,0,0,.5); background: var(--surface2);
+  }
+  .account h3 { font-family: var(--display); font-weight: 400; font-size: 1.7rem; letter-spacing: .04em; }
+  .account .meta { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
+  .account .stats { margin: 1rem 0 1.4rem; color: var(--text); font-size: .95rem; }
+  .account .sheet-actions { margin-bottom: .4rem; }
+  .btn-danger {
+    background: none; border: none; color: var(--red); font-weight: 700;
+    font-size: .9rem; padding: .8rem; width: 100%; border-radius: 8px; min-height: 44px;
+  }
+  .btn-danger:hover { background: rgba(230,36,41,.12); }
+  .account .warn { color: var(--muted); font-size: .9rem; line-height: 1.5; max-width: 40ch; margin: 0 auto 1.2rem; }
+  .account .warn b { color: var(--text); }
+
   /* ================= Toast ================= */
   .toast {
     position: fixed; left: 50%; bottom: max(1.2rem, env(safe-area-inset-bottom));
@@ -859,16 +877,79 @@ const preset = new URLSearchParams(location.search).get("route");
 if (preset && ORDERS[preset]) store.order = preset;
 render();
 
-// ---------- Sessie (alleen actief als er een login-knop is) ----------
+// ---------- Sessie & account-modal ----------
+let sessionUser = null;
+
+async function signOut() {
+  const { csrfToken } = await (await fetch("/api/auth/csrf")).json();
+  await fetch("/api/auth/signout", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: `csrfToken=${encodeURIComponent(csrfToken)}`,
+  });
+  location.reload();
+}
+
+function openAccount() {
+  const u = sessionUser;
+  if (!u) return;
+  lastFocus = document.activeElement;
+  $("sheet").innerHTML = `
+    <div class="account">
+      <button class="sheet-close" id="sheet-close" aria-label="Sluiten">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      ${u.image ? `<img class="avatar" src="${u.image}" alt="">` : ""}
+      <h3>${u.name || "Marvel-kijker"}</h3>
+      <p class="meta">${u.email || ""}</p>
+      <p class="stats">${store.watched.size} titels afgevinkt — gesynchroniseerd op al je apparaten</p>
+      <div class="sheet-actions">
+        <button class="btn-undo" id="btn-signout">Uitloggen</button>
+      </div>
+      <button class="btn-danger" id="btn-delete">Account verwijderen</button>
+    </div>`;
+  $("overlay").classList.add("open");
+  $("overlay").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  $("sheet-close").onclick = closeSheet;
+  $("btn-signout").onclick = signOut;
+  $("btn-delete").onclick = confirmDelete;
+  requestAnimationFrame(() => $("sheet-close").focus());
+}
+
+function confirmDelete() {
+  $("sheet").querySelector(".account").innerHTML = `
+    <button class="sheet-close" id="sheet-close" aria-label="Sluiten">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <h3>Account verwijderen?</h3>
+    <p class="warn">Dit verwijdert je account en je <b>gesynchroniseerde voortgang op alle apparaten</b> definitief. De voortgang op dit apparaat zelf blijft lokaal bewaard.</p>
+    <div class="sheet-actions">
+      <button class="btn btn-primary" id="btn-delete-confirm">Ja, verwijder mijn account</button>
+      <button class="btn-undo" id="btn-delete-cancel">Annuleren</button>
+    </div>`;
+  $("sheet-close").onclick = closeSheet;
+  $("btn-delete-cancel").onclick = openAccount;
+  $("btn-delete-confirm").onclick = async () => {
+    const b = $("btn-delete-confirm");
+    b.disabled = true; b.textContent = "Bezig met verwijderen…";
+    const r = await fetch("/api/account", { method: "DELETE" }).catch(() => null);
+    if (r?.ok) location.reload();
+    else { b.disabled = false; b.textContent = "Ja, verwijder mijn account"; alert("Verwijderen is niet gelukt — probeer het opnieuw."); }
+  };
+  requestAnimationFrame(() => $("btn-delete-cancel").focus());
+}
+
 const authBtn = $("btn-auth");
 if (authBtn) fetch("/api/auth/session")
   .then(r => r.ok ? r.json() : null)
   .then(s => {
     if (!s?.user) return;
     loggedIn = true;
-    authBtn.href = "/api/auth/signout";
-    authBtn.setAttribute("aria-label", `Uitloggen (${s.user.name || s.user.email})`);
-    authBtn.title = "Uitloggen";
+    sessionUser = s.user;
+    authBtn.setAttribute("aria-label", `Account (${s.user.name || s.user.email})`);
+    authBtn.title = "Account";
+    authBtn.onclick = (e) => { e.preventDefault(); openAccount(); };
     if (s.user.image) authBtn.innerHTML =
       `<img src="${s.user.image}" alt="" style="width:26px;height:26px;border-radius:50%">`;
     syncFromServer();
