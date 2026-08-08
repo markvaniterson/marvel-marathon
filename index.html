@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Marvel Marathon</title>
+<meta name="theme-color" content="#07080c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23e62429'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-size='40' font-weight='900' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://image.tmdb.org" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07080c;
+    --surface: #10131a;
+    --surface2: #181c26;
+    --line: #242936;
+    --text: #f4f5f7;
+    --muted: #a7aebb;
+    --red: #e62429;
+    --red-deep: #8f1216;
+    --display: "Bebas Neue", "Arial Narrow", sans-serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  button { font-family: var(--sans); cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 4px; }
+
+  /* ================= Intro ================= */
+  #intro {
+    position: fixed; inset: 0; z-index: 100; overflow: hidden;
+    background: var(--bg); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #intro .montage { position: absolute; inset: 0; }
+  #intro .montage img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0;
+    animation: flash .32s linear forwards;
+  }
+  @keyframes flash { 0% { opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }
+  #intro .wash {
+    position: absolute; inset: 0;
+    background: var(--red);
+    mix-blend-mode: multiply;
+    opacity: .85;
+  }
+  #intro .solid {
+    position: absolute; inset: 0;
+    background: linear-gradient(160deg, #b3151a, #6d090d);
+    opacity: 0;
+    animation: solidIn .7s ease 2.5s forwards;
+  }
+  @keyframes solidIn { to { opacity: 1; } }
+  #intro .title { position: relative; text-align: center; }
+  #intro .title h1 {
+    font-family: var(--display);
+    font-size: clamp(5rem, 26vw, 6rem);
+    letter-spacing: .04em; line-height: .9;
+    color: #fff;
+    transform: scale(5); opacity: 0;
+    animation: settle 2.9s cubic-bezier(.16,.8,.26,1) forwards;
+    text-shadow: 0 12px 60px rgba(0,0,0,.5);
+  }
+  @keyframes settle {
+    0% { transform: scale(5); opacity: 0; }
+    22% { opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #intro .title p {
+    font-family: var(--display);
+    color: #fff; font-size: clamp(1.2rem, 6vw, 1.6rem);
+    letter-spacing: .55em; text-indent: .55em;
+    opacity: 0; animation: fadeUp .7s ease 2.7s forwards;
+  }
+  #intro small {
+    position: absolute; bottom: max(1.6rem, env(safe-area-inset-bottom));
+    left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,.65); font-size: .78rem; letter-spacing: .12em;
+    opacity: 0; animation: fadeUp .7s ease .6s forwards;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  #intro.hide { transition: opacity .55s ease, visibility .55s; opacity: 0; visibility: hidden; pointer-events: none; }
+  #intro.quick .montage, #intro.quick small { display: none; }
+  #intro.quick .solid { animation: none; opacity: 1; }
+  #intro.quick .title h1 { animation: quickIn .8s cubic-bezier(.2,.8,.3,1) forwards; }
+  #intro.quick .title p { animation-delay: .2s; }
+  @keyframes quickIn { from { transform: scale(1.35); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    #intro .montage { display: none; }
+    #intro .solid { animation: none; opacity: 1; }
+    #intro .title h1, #intro.quick .title h1 { animation: none; transform: none; opacity: 1; }
+    #intro .title p, #intro small { animation: none; opacity: 1; }
+  }
+
+  /* ================= Header ================= */
+  header.app {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; gap: .8rem;
+    padding: .65rem 1rem;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: .45rem; font-family: var(--display); font-size: 1.35rem; letter-spacing: .05em; }
+  .wordmark b { background: var(--red); color: #fff; padding: .05rem .45rem .0rem; border-radius: 3px; font-weight: 400; }
+  .wordmark span { color: var(--text); }
+  .bar .spacer { flex: 1; }
+  .counter { font-family: var(--display); font-size: 1.25rem; letter-spacing: .06em; color: var(--text); }
+  .counter em { font-style: normal; color: var(--muted); }
+  .icon-btn {
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .15s, color .15s;
+  }
+  .icon-btn:hover { border-color: var(--red); color: var(--text); }
+  .progress-track { height: 3px; background: var(--surface2); }
+  .progress-track i { display: block; height: 100%; background: var(--red); transition: width .5s cubic-bezier(.22,.9,.3,1); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 0 1rem 3rem; }
+  .hidden { display: none !important; }
+
+  h2.row {
+    font-family: var(--display);
+    font-size: 1.5rem; letter-spacing: .07em; font-weight: 400;
+    margin: 1.8rem 0 .8rem;
+  }
+  h2.row small { font-family: var(--sans); color: var(--muted); font-size: .85rem; letter-spacing: 0; margin-left: .6rem; }
+
+  /* ================= Route picker ================= */
+  #pick .lede { color: var(--muted); font-size: .95rem; margin-top: -.3rem; max-width: 60ch; }
+  .routes { display: grid; gap: .9rem; margin-top: 1.1rem; }
+  .route {
+    display: flex; align-items: center; gap: 1rem; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1rem; color: var(--text);
+    transition: border-color .15s, transform .15s;
+  }
+  @media (hover: hover) {
+    .route:hover { border-color: var(--red); transform: translateY(-2px); }
+    .tile:hover { transform: scale(1.03); }
+  }
+  .fan { position: relative; width: 92px; height: 108px; flex: none; }
+  .fan img {
+    position: absolute; width: 64px; aspect-ratio: 2/3; object-fit: cover;
+    border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.55);
+    background: var(--surface2);
+  }
+  .fan img:nth-child(1) { left: 0; top: 10px; transform: rotate(-6deg); }
+  .fan img:nth-child(2) { left: 14px; top: 4px; transform: rotate(2deg); }
+  .fan img:nth-child(3) { left: 28px; top: 8px; transform: rotate(8deg); }
+  .route h3 { font-family: var(--display); font-size: 1.45rem; letter-spacing: .05em; font-weight: 400; }
+  .route p { color: var(--muted); font-size: .88rem; line-height: 1.45; margin-top: .15rem; }
+  .route .facts { margin-top: .5rem; color: var(--text); font-size: .82rem; font-weight: 600; }
+  .route .facts span { color: var(--muted); font-weight: 400; }
+
+  /* ================= Hero (volgende film) ================= */
+  .hero {
+    position: relative; border-radius: 16px; overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .hero .backdrop { position: absolute; inset: 0; }
+  .hero .backdrop img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .hero .backdrop::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(7,8,12,.97) 10%, rgba(7,8,12,.88) 35%, rgba(7,8,12,.45) 65%, rgba(7,8,12,.12) 100%);
+  }
+  .hero { animation: heroIn .45s cubic-bezier(.2,.8,.3,1); }
+  @keyframes heroIn { from { opacity: 0; transform: translateY(10px); } }
+  @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
+  .hero .content {
+    position: relative; display: flex; align-items: flex-end; gap: 1rem;
+    padding: 6.5rem 1.1rem 1.2rem;
+  }
+  .hero .poster {
+    width: 104px; aspect-ratio: 2/3; object-fit: cover; flex: none;
+    border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.6);
+    background: var(--surface2);
+  }
+  .hero .info { min-width: 0; }
+  .hero h3 { font-family: var(--display); font-weight: 400; font-size: clamp(1.9rem, 7.5vw, 3rem); letter-spacing: .03em; line-height: .95; }
+  .hero .meta { color: var(--muted); font-size: .85rem; margin-top: .35rem; }
+  .hero .meta b { color: var(--text); font-weight: 600; }
+  .hero .cta { display: flex; gap: .6rem; margin-top: .9rem; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    border: none; border-radius: 10px; padding: .7rem 1.1rem;
+    font-size: .95rem; font-weight: 700; min-height: 44px;
+  }
+  .btn svg { flex: none; }
+  .btn-primary { background: var(--red); color: #fff; box-shadow: 0 8px 24px rgba(230,36,41,.35); }
+  .btn-primary:hover { background: #f03338; }
+  .btn-ghost { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid rgba(255,255,255,.18); }
+  .btn-ghost:hover { border-color: rgba(255,255,255,.45); }
+
+  .hero.finale { background: linear-gradient(150deg, #a3141a, #4b070a); border-color: #b8353a; }
+  .hero.finale .content { padding-top: 2.2rem; display: block; }
+  .hero.finale h3 { font-size: clamp(2.4rem, 9vw, 3.4rem); }
+  .hero.finale p { color: #ffd9da; margin-top: .3rem; max-width: 46ch; }
+
+  /* ================= Poster grid ================= */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; }
+  .tile {
+    position: relative; border: none; padding: 0; background: var(--surface2);
+    border-radius: 10px; overflow: hidden; aspect-ratio: 2/3;
+    transition: transform .18s ease;
+  }
+  .tile img { width: 100%; height: 100%; object-fit: cover; }
+  .tile .fallback {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: .6rem; text-align: center; color: var(--text);
+    font-family: var(--display); font-size: 1.05rem; letter-spacing: .05em;
+    background: linear-gradient(160deg, var(--surface2), #232837);
+  }
+  .tile .num {
+    position: absolute; top: 6px; left: 6px;
+    font-family: var(--display); font-size: .95rem; letter-spacing: .05em;
+    color: #fff; background: rgba(7,8,12,.72);
+    padding: .1rem .42rem 0; border-radius: 6px;
+  }
+  .tile .done {
+    position: absolute; right: 6px; bottom: 6px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--red); color: #fff;
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5);
+  }
+  .tile.watched img { filter: grayscale(1) brightness(.5); }
+  .tile.watched .done { display: flex; }
+  .tile.next { box-shadow: 0 0 0 2px var(--red), 0 10px 30px rgba(230,36,41,.25); }
+  .tile .kind {
+    position: absolute; top: 6px; right: 6px;
+    font-family: var(--display); font-size: .95rem; letter-spacing: .05em;
+    color: #fff; background: rgba(7,8,12,.72);
+    padding: .1rem .42rem 0; border-radius: 6px;
+  }
+  .tile .kind.hot { background: var(--red); }
+
+  footer {
+    max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 2.5rem;
+    color: var(--muted); font-size: .78rem; line-height: 1.6;
+    border-top: 1px solid var(--line);
+  }
+  footer a { color: var(--muted); }
+
+  /* ================= Detail sheet ================= */
+  #overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(4,5,8,.7);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity .25s ease, visibility 0s linear .3s;
+  }
+  #overlay.open { opacity: 1; visibility: visible; transition: opacity .25s ease; }
+  #sheet {
+    background: var(--surface); width: 100%; max-width: 680px;
+    border-radius: 18px 18px 0 0; overflow: hidden;
+    max-height: 92dvh; overflow-y: auto;
+    transform: translateY(40px);
+    transition: transform .32s cubic-bezier(.2,.85,.3,1);
+  }
+  #overlay.open #sheet { transform: none; }
+  .sheet-head { position: relative; aspect-ratio: 16/8; background: var(--surface2); }
+  .sheet-head img.bd { width: 100%; height: 100%; object-fit: cover; }
+  .sheet-head::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to top, var(--surface) 4%, rgba(16,19,26,.25) 55%, rgba(16,19,26,0));
+  }
+  .play-trailer {
+    position: absolute; right: .9rem; bottom: .8rem; z-index: 2;
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: rgba(7,8,12,.72); color: #fff; border: 1px solid rgba(255,255,255,.25);
+    border-radius: 999px; padding: .5rem .95rem .5rem .6rem;
+    font-size: .88rem; font-weight: 700; min-height: 44px;
+    backdrop-filter: blur(6px);
+    transition: border-color .15s, background .15s;
+  }
+  .play-trailer:hover { border-color: var(--red); background: rgba(230,36,41,.25); }
+  #trailer {
+    position: fixed; inset: 0; z-index: 80; background: #000;
+    display: none;
+  }
+  #trailer.open { display: block; }
+  #trailer iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #trailer .sheet-close { top: max(.7rem, env(safe-area-inset-top)); }
+  .sheet-close {
+    position: absolute; top: .7rem; right: .7rem; z-index: 2;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(7,8,12,.65); color: #fff; border: none;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .sheet-body { position: relative; padding: 0 1.2rem 1.4rem; }
+  .sheet-top { display: flex; gap: 1rem; align-items: flex-end; margin-top: -3.4rem; position: relative; z-index: 1; }
+  .sheet-top .poster {
+    width: 96px; aspect-ratio: 2/3; object-fit: cover; flex: none;
+    border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.6);
+    background: var(--surface2);
+  }
+  .sheet-top h3 { font-family: var(--display); font-weight: 400; font-size: clamp(1.7rem, 6.5vw, 2.4rem); letter-spacing: .03em; line-height: .95; }
+  .sheet-top .meta { color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  .sheet-body .desc { line-height: 1.6; margin: 1rem 0 1.1rem; color: var(--text); max-width: 62ch; }
+  .avail {
+    display: flex; align-items: center; gap: .7rem;
+    background: var(--surface2); border: 1px solid var(--line);
+    border-radius: 12px; padding: .85rem 1rem; margin-bottom: 1.2rem;
+    font-size: .92rem;
+  }
+  .avail svg { color: var(--muted); flex: none; }
+  .avail b { font-weight: 600; }
+  .avail { min-height: 56px; }
+  .sheet-actions { display: flex; gap: .7rem; }
+  .sheet-actions .btn-primary, .sheet-actions .btn-undo { flex: 1; justify-content: center; padding: .95rem; font-size: 1rem; }
+  .btn-undo { background: var(--surface2); color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font-weight: 700; }
+  .btn-undo:hover { color: var(--text); border-color: var(--muted); }
+
+  /* ================= Toast ================= */
+  .toast {
+    position: fixed; left: 50%; bottom: max(1.2rem, env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(90px);
+    background: var(--surface2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 12px; padding: .55rem .55rem .55rem 1rem;
+    display: flex; gap: .6rem; align-items: center;
+    font-size: .9rem; z-index: 70; max-width: calc(100vw - 2rem);
+    box-shadow: 0 12px 30px rgba(0,0,0,.55);
+    transition: transform .35s cubic-bezier(.2,.85,.3,1);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toast button {
+    background: none; border: none; color: var(--red); font-weight: 700;
+    font-size: .9rem; padding: .55rem .6rem; white-space: nowrap; border-radius: 8px;
+  }
+  .toast button:hover { background: rgba(230,36,41,.12); }
+
+  /* ================= Desktop ================= */
+  @media (min-width: 760px) {
+    .bar { padding: .75rem 1.5rem; }
+    main { padding: 0 1.5rem 4rem; }
+    .routes { grid-template-columns: repeat(3, 1fr); }
+    .route { flex-direction: column; align-items: flex-start; padding: 1.3rem; }
+    .fan { width: 110px; height: 120px; }
+    .grid { grid-template-columns: repeat(6, 1fr); gap: .8rem; }
+    .hero .content { padding: 9rem 1.6rem 1.6rem; }
+    .hero .poster { width: 132px; }
+    #overlay { align-items: center; padding: 2rem; }
+    #sheet { border-radius: 18px; }
+  }
+</style>
+</head>
+<body>
+<!--
+THESIS: Eén beslissing per bezoek — "welke Marvel-film kijk ik nu?" — beantwoord met het artwork zelf; geen dashboard van kaartjes met icoontjes, de posters zíjn de interface.
+OWN-WORLD: Diep zwart (#07080c) met Marvel-rood (#e62429) als enige identiteitskleur; Bebas Neue condensed display; TMDB-posters en -backdrops dragen alle overige kleur; dunne 1px lijnen, zachte diepe schaduwen.
+STORY: Bezoeker landt in een flipbook-intro, kiest één keer een route, en ziet daarna altijd bovenaan de volgende film met afvink-actie; de grid eronder is het bewijs van voortgang.
+FIRST VIEWPORT (mobiel): sticky balk met wordmark + teller; hero = backdrop van de volgende film met poster, titel in Bebas, meta en primaire rode "Gekeken"-knop onderin het beeld.
+FORM: Cinematic streaming-premium — door gebruiker gepind via structured probe (geen concept-roll); mobile-first bottom-sheet grammatica.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+
+<div id="intro" role="button" tabindex="0" aria-label="Intro overslaan">
+  <div class="montage" id="montage"></div>
+  <div class="wash"></div>
+  <div class="solid"></div>
+  <div class="title">
+    <h1>MARVEL</h1>
+    <p>Marathon</p>
+  </div>
+  <small>tik om over te slaan</small>
+</div>
+
+<header class="app">
+  <div class="bar">
+    <div class="wordmark"><b>MARVEL</b><span>MARATHON</span></div>
+    <div class="spacer"></div>
+    <div class="counter" id="counter" aria-live="polite"></div>
+    <button class="icon-btn hidden" id="btn-switch" aria-label="Andere kijkvolgorde kiezen" title="Andere kijkvolgorde">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
+    </button>
+  </div>
+  <div class="progress-track"><i id="bar" style="width:0"></i></div>
+</header>
+
+<main>
+  <section id="pick" class="hidden">
+    <h2 class="row">Kies je route</h2>
+    <p class="lede">Drie manieren om het Marvel Cinematic Universe te beleven. Je voortgang telt in elke route mee.</p>
+    <div class="routes" id="routes"></div>
+  </section>
+
+  <section id="watch" class="hidden">
+    <h2 class="row">Nu aan de beurt</h2>
+    <div id="hero"></div>
+    <h2 class="row">Jouw marathon <small id="route-name"></small></h2>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<footer>
+  Filmposters, artwork en streamingdata via <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a> (JustWatch-data). Deze app gebruikt de TMDB API maar is niet gemaakt of onderschreven door TMDB.
+</footer>
+
+<div id="overlay" aria-hidden="true">
+  <div id="sheet" role="dialog" aria-modal="true" aria-label="Filmdetails"></div>
+</div>
+
+<div id="trailer">
+  <iframe id="trailer-frame" src="" title="Trailer" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+  <button class="sheet-close" id="trailer-close" aria-label="Trailer sluiten">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+</div>
+
+<div class="toast" id="toast" role="status">
+  <span id="toast-msg"></span>
+  <button id="toast-undo">Ongedaan maken</button>
+</div>
+
+<script>
+// ---------- Data ----------
+// TMDB API-key voor live "nu te zien op"-data: één keer openen met ?tmdbkey=JOUWKEY, daarna onthouden.
+// Bewust niet in de code — deze file staat op GitHub.
+const keyParam = new URLSearchParams(location.search).get("tmdbkey");
+if (keyParam) {
+  localStorage.setItem("mm-tmdb-key", keyParam);
+  history.replaceState(null, "", location.pathname);
+}
+const TMDB_KEY = localStorage.getItem("mm-tmdb-key") || "";
+const IMG = "https://image.tmdb.org/t/p/";
+const DP = "Disney+";
+const SONY = "Disney+ / Netflix (wisselt)";
+const OS = "Disney+ / blu-ray-extra";
+// type: (geen) = film, s = serie, k = short, x = special
+const FILMS = {
+  im1:  { id:1726, t:"Iron Man", y:2008, min:126, ph:1, plat:DP, po:"78lPtwv72eTNqFW9COBYI0dWDJa.jpg", bd:"cKvDv2LpwVEqbdXWoQl4XgGN6le.jpg", yt:"8ugaeA-nMTc", d:"Wapenfabrikant Tony Stark bouwt in gevangenschap een gepantserd pak en wordt Iron Man. Het begin van alles." },
+  hulk: { id:1724, t:"The Incredible Hulk", y:2008, min:112, ph:1, plat:DP, po:"gKzYx79y0AQTL4UAk1cBQJ3nvrm.jpg", bd:"jPu8yiadqgzwFPGKJmGo637ASVP.jpg", yt:"dz6eBeW19Lg", d:"Bruce Banner is op de vlucht voor het leger terwijl hij een remedie zoekt voor het monster in zichzelf." },
+  im2:  { id:10138, t:"Iron Man 2", y:2010, min:124, ph:1, plat:DP, po:"6WBeq4fCfn7AN0o21W9qNcRF2l9.jpg", bd:"7lmBufEG7P7Y1HClYK3gCxYrkgS.jpg", yt:"BoohRoVA9WQ", d:"Tony Stark vecht tegen zijn eigen sterfelijkheid, de overheid en rivaal Ivan Vanko. Introductie van Black Widow." },
+  thor: { id:10195, t:"Thor", y:2011, min:115, ph:1, plat:DP, po:"prSfAi1xGrhLQNxVSUFh61xQ4Qy.jpg", bd:"cDJ61O1STtbWNBwefuqVrRe3d7l.jpg", yt:"uHBnrJowBZE", d:"De arrogante dondergod wordt door Odin verbannen naar aarde en moet zich zijn kracht opnieuw waardig tonen." },
+  ca1:  { id:1771, t:"Captain America: The First Avenger", y:2011, min:124, ph:1, plat:DP, po:"vSNxAJTlD0r02V9sPYpOjqDZXUK.jpg", bd:"yFuKvT4Vm3sKHdFY4eG6I4ldAnn.jpg", yt:"W4DlMggBPvc", d:"WOII: de magere Steve Rogers wordt supersoldaat en neemt het op tegen HYDRA en Red Skull." },
+  av1:  { id:24428, t:"The Avengers", y:2012, min:143, ph:1, plat:DP, po:"RYMX2wcKCBAr24UyPD7xwmjaTn.jpg", bd:"9BBTo63ANSmhC4e6r62OJFuK2GL.jpg", yt:"7BNKPzSxHtE", d:"Loki valt de aarde aan en de helden moeten voor het eerst als team samenwerken. De eerste grote cross-over." },
+  im3:  { id:68721, t:"Iron Man 3", y:2013, min:130, ph:2, plat:DP, po:"hA2lzDyMkWFHaH8N2Q2Nor31mk4.jpg", bd:"iVped1djsF0tvGkvnHbzsE3ZPTF.jpg", yt:"-xFDIKzhzTc", d:"Na New York kampt Tony met paniekaanvallen en het mysterie van de Mandarin." },
+  th2:  { id:76338, t:"Thor: The Dark World", y:2013, min:112, ph:2, plat:DP, po:"wp6OxE4poJ4G7c0U2ZIXasTSMR7.jpg", bd:"5QEOy0QEpad9QsXeMxuGHPXMale.jpg", yt:"oN2DWkaiLoc", d:"Thor en Loki werken noodgedwongen samen tegen de Dark Elves en de Aether (Reality Stone)." },
+  ca2:  { id:100402, t:"Captain America: The Winter Soldier", y:2014, min:136, ph:2, plat:DP, po:"tVFRpFw3xTedgPGqxW0AOI8Qhh0.jpg", bd:"1RWLMyC9KcFfcaoViMiJGSSZzzr.jpg", yt:"uB-QJWtQC1o", d:"Politieke thriller: S.H.I.E.L.D. is gecorrumpeerd en Steve ontdekt wie de Winter Soldier is." },
+  gotg: { id:118340, t:"Guardians of the Galaxy", y:2014, min:121, ph:2, plat:DP, po:"r7vmZjiyZw9rpJMQJdXpjgiCOk9.jpg", bd:"uLtVbjvS1O7gXL8lUOwsFOH4man.jpg", yt:"MFIl2Gh2Nog", d:"Een stel kosmische outlaws — Star-Lord, Gamora, Drax, Rocket en Groot — steelt per ongeluk een Infinity Stone." },
+  av2:  { id:99861, t:"Avengers: Age of Ultron", y:2015, min:141, ph:2, plat:DP, po:"4ssDuvEDkSArWEdyBl2X5EHvYKU.jpg", bd:"kIBK5SKwgqIIuRKhhWrJn3XkbPq.jpg", yt:"JAUoeqvedMo", d:"Tony's AI-vredesproject Ultron keert zich tegen de mensheid. Introductie van Vision, Wanda en Pietro." },
+  ant:  { id:102899, t:"Ant-Man", y:2015, min:117, ph:2, plat:DP, po:"rQRnQfUl3kfp78nCWq8Ks04vnq1.jpg", bd:"1K3JmSNUN8OpjYsCjc0Hy0SYxAb.jpg", yt:"73p428pgZHw", d:"Meesterdief Scott Lang krijgt een pak waarmee hij kan krimpen — en een tweede kans." },
+  ca3:  { id:271110, t:"Captain America: Civil War", y:2016, min:147, ph:3, plat:DP, po:"AkgoCVgZ3U2RjBewIUz2m0qWAgQ.jpg", bd:"wdwcOBMkt3zmPQuEMxB3FUtMio2.jpg", yt:"R5G-MR6_XXQ", d:"De Avengers splijten in twee kampen over de Sokovia-akkoorden. Team Cap vs. Team Iron Man." },
+  ds1:  { id:284052, t:"Doctor Strange", y:2016, min:115, ph:3, plat:DP, po:"uGBVj3bEbCoZbDjjl9wTxcygko1.jpg", bd:"kkoiH8ZWxJ9WSAjOadGtuHUQxbm.jpg", yt:"ywb2FXE65Ig", d:"Chirurg Stephen Strange verliest zijn handen en vindt magie, de mystieke kunsten en de Time Stone." },
+  gotg2:{ id:283995, t:"Guardians of the Galaxy Vol. 2", y:2017, min:136, ph:3, plat:DP, po:"y4MBh0EjBlMuOzv9axM4qJlmhzz.jpg", bd:"bW93ycPSSi3Hxx1NvlMX5qm2mQu.jpg", yt:"mFjtu-4kNew", d:"Star-Lord ontmoet zijn vader Ego — en dat pakt anders uit dan gehoopt. Familie staat centraal." },
+  spm1: { id:315635, t:"Spider-Man: Homecoming", y:2017, min:133, ph:3, plat:SONY, po:"c24sv2weTHPsmDa7jEMN0m2P3RT.jpg", bd:"fn4n6uOYcB6Uh89nbNPoU2w80RV.jpg", yt:"rIOoOXpcI-c", d:"Tiener Peter Parker balanceert school en superhelddom onder de vleugels van Tony Stark, tegen de Vulture." },
+  th3:  { id:284053, t:"Thor: Ragnarok", y:2017, min:130, ph:3, plat:DP, po:"rzRwTcFvttcN1ZpX2xv4j3tSdJu.jpg", bd:"vLmHH8jAy8Jq8uBsLucd3592WGh.jpg", yt:"WQWyaiDLBRI", d:"Thor zit vast op gladiatorenplaneet Sakaar (met Hulk!) terwijl zijn zus Hela Asgard verwoest. Komisch hoogtepunt." },
+  bp1:  { id:284054, t:"Black Panther", y:2018, min:134, ph:3, plat:DP, po:"uxzzxijgPIY7slzFvMotPv8wjKA.jpg", bd:"b6ZJZHUdMEFECvGiDpJjlfUWela.jpg", yt:"92hdTgt117M", d:"T'Challa wordt koning van Wakanda en wordt uitgedaagd door Killmonger." },
+  av3:  { id:299536, t:"Avengers: Infinity War", y:2018, min:149, ph:3, plat:DP, po:"7WsyChQLEftFiDOVTGkv3hFpyyt.jpg", bd:"mDfJG3LC3Dqb67AZ52x3Z0jU0uB.jpg", yt:"QwievZ1Tx-8", d:"Thanos verzamelt de zes Infinity Stones. Alle helden samen — en toch niet genoeg." },
+  ant2: { id:363088, t:"Ant-Man and the Wasp", y:2018, min:118, ph:3, plat:DP, po:"cFQEO687n1K6umXbInzocxcnAQz.jpg", bd:"iYdgEUE2W2aJkgqfSjf1x3gFfuV.jpg", yt:"Aet7aWVbwmQ", d:"Scott en Hope zoeken Janet in het Quantum Realm. De post-creditscène sluit direct aan op Infinity War." },
+  cm:   { id:299537, t:"Captain Marvel", y:2019, min:123, ph:3, plat:DP, po:"3AdCQFa2z6M1lyqE8YVCP1DewHo.jpg", bd:"qAzYK4YPSWDc7aa4R43LcwRIAyb.jpg", yt:"wx2c6h6-0h0", d:"Jaren '90: Carol Danvers ontdekt haar verleden en krachten tussen de Kree-Skrull-oorlog door." },
+  av4:  { id:299534, t:"Avengers: Endgame", y:2019, min:181, ph:3, plat:DP, po:"stguLTUPp0d0dCsP7Q4qhV7uONV.jpg", bd:"7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg", yt:"LW4BhPix5R4", d:"Vijf jaar na de Snap wagen de overgebleven Avengers een tijdreis-gok. Het epische slot van de Infinity Saga." },
+  spm2: { id:429617, t:"Spider-Man: Far From Home", y:2019, min:129, ph:3, plat:SONY, po:"4q2NNj4S5dG2RLF9CpXsej7yXl.jpg", bd:"vamhMTvh9m9zFHDoR0v1nRtf6T4.jpg", yt:"zclu4ceiIVA", d:"Peter rouwt om Tony op schoolreis door Europa, terwijl Mysterio niet is wie hij lijkt." },
+  bw:   { id:497698, t:"Black Widow", y:2021, min:134, ph:4, plat:DP, po:"qAZ0pzat24kLdO3o8ejmbLxyOac.jpg", bd:"keIxh0wPr2Ymj0Btjh4gW7JJ89e.jpg", yt:"GL93KVkcvIM", d:"Natasha's verleden: het Red Room-programma en haar 'familie'. Speelt tussen Civil War en Infinity War." },
+  sc:   { id:566525, t:"Shang-Chi and the Legend of the Ten Rings", y:2021, min:132, ph:4, plat:DP, po:"bCTW2twav3TpHtBfAowf6tIMnWD.jpg", bd:"r7K6Xt0RX4Mw0cAbZVw5cyb1Tux.jpg", yt:"KJg8-dcQWQE", d:"Meester-vechter Shang-Chi wordt geconfronteerd met zijn vader en de Ten Rings-organisatie." },
+  et:   { id:524434, t:"Eternals", y:2021, min:156, ph:4, plat:DP, po:"4wJX8ReBintesY6Mrc0kugIPvNx.jpg", bd:"c6H7Z4u73ir3cIoCteuhJh7UCAR.jpg", yt:"x_me3xsvDgk", d:"Onsterfelijke wezens die de mensheid al millennia beschermen, komen weer samen tegen de Deviants." },
+  spm3: { id:634649, t:"Spider-Man: No Way Home", y:2021, min:148, ph:4, plat:SONY, po:"3HRQp3HyLs7xiETvpMDB8Ckullt.jpg", bd:"14QbnygCuTO0vl7CAFmPf1fgZfV.jpg", yt:"5n1_QaIkrQ4", d:"Peters identiteit is onthuld; een mislukte spreuk van Strange haalt vijanden (en vrienden) uit andere universums." },
+  ds2:  { id:453395, t:"Doctor Strange in the Multiverse of Madness", y:2022, min:126, ph:4, plat:DP, po:"ctmhT0Ws0wPBem94i6vnKYz0flf.jpg", bd:"lv3TXqhpaIxkclIHbhN2MRMOemQ.jpg", yt:"frRCOX81LXc", d:"Strange en America Chavez rennen door het multiversum, opgejaagd door de Scarlet Witch." },
+  th4:  { id:616037, t:"Thor: Love and Thunder", y:2022, min:119, ph:4, plat:DP, po:"46WaY1ILXspw6tdSZ2YHqsfdywQ.jpg", bd:"jsoz1HlxczSuTx0mDl2h0lxy36l.jpg", yt:"-4PnKApH1CM", d:"Thor zoekt innerlijke rust maar Gorr the God Butcher heeft andere plannen. Jane Foster als Mighty Thor." },
+  bp2:  { id:505642, t:"Black Panther: Wakanda Forever", y:2022, min:161, ph:4, plat:DP, po:"sv1xJUazXeYqALzczSZ3O6nkH75.jpg", bd:"83H0C66AcvkwpG2738VCTHMY9uv.jpg", yt:"axOaC6diGO4", d:"Wakanda rouwt om T'Challa en botst met de onderwaternatie Talokan van Namor." },
+  ant3: { id:640146, t:"Ant-Man and the Wasp: Quantumania", y:2023, min:124, ph:5, plat:DP, po:"vKLpOTdDaNIIPGIh062BCrJCS4T.jpg", bd:"m8JTwHFwX7I7JY5fPe4SjqejWag.jpg", yt:"OaVcaHyn7cg", d:"De familie Lang belandt in het Quantum Realm en ontmoet Kang the Conqueror." },
+  gotg3:{ id:447365, t:"Guardians of the Galaxy Vol. 3", y:2023, min:150, ph:5, plat:DP, po:"g9OXkiQJwGFsKgOQglSjbQGLXkF.jpg", bd:"5YZbUmjbMa3ClvSW1Wj3D6XGolb.jpg", yt:"8G7TpTvQ7_Q", d:"Rockets verleden komt aan het licht; het emotionele afscheid van dit Guardians-team." },
+  mvls: { id:609681, t:"The Marvels", y:2023, min:105, ph:5, plat:DP, po:"A0GrGE3GylrZ6GrkSQWqiMfFLzz.jpg", bd:"feSiISwgEpVzR1v3zv2n2AU4ANJ.jpg", yt:"CceGhHELqnY", d:"Carol, Monica en Ms. Marvel wisselen ongewild van plaats bij elk gebruik van hun krachten." },
+  dpw:  { id:533535, t:"Deadpool & Wolverine", y:2024, min:128, ph:5, plat:DP, po:"vPVrGK4yFdV0PojNa0bi8haqvLW.jpg", bd:"by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg", yt:"z1SsriUvRh4", d:"Deadpool sleept een onwillige Wolverine mee door het multiversum. R-rated en vol knipogen." },
+  ca4:  { id:822119, t:"Captain America: Brave New World", y:2025, min:118, ph:5, plat:DP, po:"ntxGGUSDMSSP0cflXbLTKk7C78u.jpg", bd:"ywe9S1cOyIhR5yWzK7511NuQ2YX.jpg", yt:"AiJ1hS-ZEks", d:"Sam Wilson draagt het schild en raakt verstrikt in een internationaal complot rond president Ross." },
+  tb:   { id:986056, t:"Thunderbolts*", y:2025, min:127, ph:5, plat:DP, po:"tDBlg4OaRBkKX7iM9Uin2awpqqQ.jpg", bd:"rthMuZfFv4fqEU4JVbgSW9wQ8rs.jpg", yt:"Vo3yyHEUssY", d:"Een team antihelden — Yelena, Bucky, Red Guardian e.a. — wordt in een dodelijke val gelokt." },
+  ff:   { id:617126, t:"The Fantastic Four: First Steps", y:2025, min:115, ph:6, plat:DP, po:"33eW6nG6RgbF9BEJghivnCGc88H.jpg", bd:"s94NjfKkcSczZ1FembwmQZwsuwY.jpg", yt:"AUGEciw8xlE", d:"Marvels eerste familie in een retro-futuristische wereld, tegenover de planeetverslinder Galactus." },
+
+  // Bioscoop & verwacht
+  bnd:  { id:969681, t:"Spider-Man: Brand New Day", y:2026, min:120, ph:6, plat:"Bioscoop", date:"2026-07-30", po:"aYBkFizFivFLorXIOoQTNis2rZi.jpg", bd:"qeQJx07rK2xm8SD2sJxFKhE7gs0.jpg", yt:"P3uI5sLosKU", d:"Peter Parker begint met een schone lei: niemand weet meer wie hij is. Het volgende Spider-Man-hoofdstuk in het MCU." },
+  doom: { id:1003596, t:"Avengers: Doomsday", y:2026, min:null, ph:6, plat:"Bioscoop", date:"2026-12-18", po:"bh2OuKvq19jBHsloUVCfPSZZw81.jpg", bd:"s4v0UX1anfXm0UvloLsTTJ4v222.jpg", yt:"irVNGjRFZGk", d:"De Avengers, de Fantastic Four en de X-Men tegenover Doctor Doom. De opmaat naar Secret Wars." },
+
+  // Marvel One-Shots (korte films)
+  os1:  { id:76122, t:"Marvel One-Shot: The Consultant", y:2011, min:4, ph:1, type:"k", plat:OS, po:"xqNLXUUvBnfVk6m3QFGGU0Grgs7.jpg", bd:"r1Q3jyOpfbF3VDU52w8RzkTPbfe.jpg", yt:"5fqkhw1jiZI", d:"Coulson en Sitwell overleggen wie er vooral níet in het Avengers Initiative moet komen." },
+  os2:  { id:76535, t:"Marvel One-Shot: A Funny Thing Happened on the Way to Thor's Hammer", y:2011, min:4, ph:1, type:"k", plat:OS, po:"njrOqsmFH4pxBrhcoslqLfw2OGk.jpg", bd:"yuIsNfHZTn3nkSsatzM0298wA67.jpg", yt:"AqcnUD468no", d:"Wat deed agent Coulson onderweg naar New Mexico? Een tussenstop bij een tankstation." },
+  os3:  { id:119569, t:"Marvel One-Shot: Item 47", y:2012, min:12, ph:1, type:"k", plat:OS, po:"hnSxG8clwLuAXEkp9emc8HCUcHD.jpg", bd:"pC36ONAaKMXStlvutYFcAbMemCM.jpg", yt:"Gog0_GKYpIg", d:"Een achtergebleven Chitauri-wapen belandt bij een stel amateurcriminelen." },
+  os4:  { id:211387, t:"Marvel One-Shot: Agent Carter", y:2013, min:15, ph:2, type:"k", plat:OS, po:"4vFKKWPvCVDJTOWiwReBfpAMScP.jpg", bd:"kv8KDbi2I4F4MNBbBMCR4LDqP6H.jpg", yt:"hsmexv78GMg", d:"Peggy Carter bewijst zich in het naoorlogse S.S.R. — de kiem van haar eigen serie." },
+  os5:  { id:253980, t:"Marvel One-Shot: All Hail the King", y:2014, min:14, ph:2, type:"k", plat:OS, po:"y0QYZPWgeGKOvyrzi6Oz3aJPxJa.jpg", bd:"yoigAFjhEhJM6O6hQT9TiKH6EL7.jpg", yt:"XlJuWdLpdNw", d:"Trevor Slattery krijgt in de gevangenis bezoek van een documentairemaker — en van de échte Ten Rings." },
+
+  // Specials
+  wbn:  { id:894205, t:"Werewolf by Night", y:2022, min:53, ph:4, type:"x", plat:DP, po:"ajzbmi1iLMoVm0yEGyumEEGI8zC.jpg", bd:"pfAZP7JvTTxqgq7n6A1OYgkAdEW.jpg", yt:"kyaCzFvWbdM", d:"Monsterjagers strijden om de Bloodstone in deze zwart-witte horror-special." },
+  ghs:  { id:774752, t:"The Guardians of the Galaxy Holiday Special", y:2022, min:44, ph:4, type:"x", plat:DP, po:"9K3ktUeQLbxogy4H7XHZTQEMZXA.jpg", bd:"rfnmMYuZ6EKOBvQLp2wqP21v7sI.jpg", yt:"OYhFFQl4fLs", d:"Drax en Mantis ontvoeren Kevin Bacon om Quills kerst te redden." },
+
+  // Series
+  wv:      { id:85271, tv:1, t:"WandaVision", y:2021, min:350, eps:9, ph:4, type:"s", plat:DP, po:"ijWWwINc8h71NQ8j1LTJMFSj5wr.jpg", bd:"lOr9NKxh4vMweufMOUDJjJhCRHW.jpg", yt:"UBhlqe2OTt4", d:"Wanda en Vision leiden een perfect sitcom-leven in Westview — maar niets is wat het lijkt." },
+  fws:     { id:88396, tv:1, t:"The Falcon and the Winter Soldier", y:2021, min:300, eps:6, ph:4, type:"s", plat:DP, po:"vyHQCXgLUSB3Xw5Ly6KcUwX22p4.jpg", bd:"aTjbqMONy77fHJrIYu14g1F0d5h.jpg", yt:"ojGHE581lsM", d:"Sam en Bucky worstelen met de erfenis van het schild van Captain America." },
+  loki:    { id:84958, tv:1, t:"Loki", y:2021, min:560, eps:12, seasons:2, ph:4, type:"s", plat:DP, po:"nKUiJk5g9BEuFj2jJjbWheBpEWR.jpg", bd:"q3jHCb4dMfYF6ojikKuHd6LscxC.jpg", yt:"4hm9MKd6OPU", d:"Loki wordt opgepakt door de Time Variance Authority en ontdekt wat er achter de heilige tijdlijn zit." },
+  whatif:  { id:91363, tv:1, t:"What If...?", y:2021, min:780, eps:26, seasons:3, ph:4, type:"s", plat:DP, po:"zaqfFDUrSfIljdD0OBxSjcutX8n.jpg", bd:"jnzoh5qoxRLFRIQAxnl6D3RStPC.jpg", yt:"x9D0uUKJ5KI", d:"Geanimeerde multiversum-verhalen: bekende MCU-momenten met één andere afloop." },
+  hawk:    { id:88329, tv:1, t:"Hawkeye", y:2021, min:300, eps:6, ph:4, type:"s", plat:DP, po:"g3ImISuEbQZ3LNOF9rBucQJFM4n.jpg", bd:"9QNv2Al3GfCND8BwuLmu2GwVht7.jpg", yt:"5VYb3B1ETlk", d:"Clint Barton wil kerst met zijn gezin halen; Kate Bishop maakt dat ingewikkeld." },
+  moon:    { id:92749, tv:1, t:"Moon Knight", y:2022, min:300, eps:6, ph:4, type:"s", plat:DP, po:"i9Xo3XqcfH17waNNJzK1JETX2ml.jpg", bd:"1uegR4uAxRxiMyX4nQnpzbXhrTw.jpg", yt:"x7Krla_UxRg", d:"Marc Spector deelt zijn lichaam met Steven Grant — en met de Egyptische maangod Khonshu." },
+  msm:     { id:92782, tv:1, t:"Ms. Marvel", y:2022, min:280, eps:6, ph:4, type:"s", plat:DP, po:"3HWWh92kZbD7odwJX7nKmXNZsYo.jpg", bd:"mfcLUWASJghU8MTNK38eYktfE83.jpg", yt:"m9EX0f6V11Y", d:"Tiener en Captain Marvel-superfan Kamala Khan krijgt zelf krachten." },
+  groot:   { id:232125, tv:1, t:"I Am Groot", y:2022, min:40, eps:10, seasons:2, ph:4, type:"k", plat:DP, po:"3QfQYECgu6DX5UUWCBvv1Fl0BAJ.jpg", bd:"bAnHzJ6AMhOhnV3C0kTxkpCqpgM.jpg", yt:"D7eFpRf4tac", d:"Tien miniavonturen van Baby Groot tussen de Guardians-films door." },
+  shehulk: { id:92783, tv:1, t:"She-Hulk: Attorney at Law", y:2022, min:300, eps:9, ph:4, type:"s", plat:DP, po:"x6QnuOLS5XiN5JheRwtarFYwTNT.jpg", bd:"eljErfkQUcFUgQkI4I1soZcH8MW.jpg", yt:"u7JsKhI2An0", d:"Advocaat Jennifer Walters wordt na een bloedtransfusie van neef Bruce zelf een Hulk." },
+  si:      { id:114472, tv:1, t:"Secret Invasion", y:2023, min:300, eps:6, ph:5, type:"s", plat:DP, po:"3rINdUPSy9AklJg74jWHOyUXuZd.jpg", bd:"6mOK9j99OFlxGc3ird2jWUeUha9.jpg", yt:"Tp_YZNqNBhw", d:"Nick Fury tegen een geheime Skrull-infiltratie op aarde." },
+  echo:    { id:122226, tv:1, t:"Echo", y:2024, min:230, eps:5, ph:5, type:"s", plat:DP, po:"vFyJH630cF68LohVYjQW49074Sy.jpg", bd:"u3ySnWqSjM3jedYgJZTR7RWRDDm.jpg", yt:"g0f1o-KGWPM", d:"Maya Lopez keert terug naar haar roots en rekent af met Kingpin." },
+  agatha:  { id:138501, tv:1, t:"Agatha All Along", y:2024, min:350, eps:9, ph:5, type:"s", plat:DP, po:"mGsxKwXUjojitRv2E9qMTbxbBRd.jpg", bd:"tYLXJW1sZQU09VWY1BhSVPKGIwc.jpg", yt:"SiYe16aOa-0", d:"Agatha Harkness verzamelt een coven en waagt zich aan de Witches' Road." },
+  ddba:    { id:202555, tv:1, t:"Daredevil: Born Again", y:2025, min:430, eps:9, ph:5, type:"s", plat:DP, po:"xDUoAsU8lQHOOoRkFiBuarmACDN.jpg", bd:"m291MEBjhuRqb0nh9ojnm9gzScq.jpg", yt:"iLJaVHEts50", d:"Matt Murdock en Wilson Fisk botsen opnieuw — nu om de ziel van New York." },
+  ih:      { id:114471, tv:1, t:"Ironheart", y:2025, min:280, eps:6, ph:5, type:"s", plat:DP, po:"dOh6MJpdlQhYpLBhzhNQeYGKTZ5.jpg", bd:"kiOEVg5BkzLE0pWoPKecXd7wZ2Q.jpg", yt:"r6j-wSIqJJ0", d:"Riri Williams bouwt haar eigen pantser, tussen techniek en magie in Chicago." },
+  eow:     { id:241388, tv:1, t:"Eyes of Wakanda", y:2025, min:120, eps:4, ph:5, type:"s", plat:DP, po:"yuOfb1MgnaGPa4guzV0n1IFYVGN.jpg", bd:"cWO5NDkKqpOuwxu4vFc4PtL8aNF.jpg", yt:"ODHh6oe4MlE", d:"Geanimeerd: Wakandaanse krijgers door de eeuwen heen op jacht naar vibranium-artefacten." },
+  wm:      { id:198178, tv:1, t:"Wonder Man", y:2025, min:320, eps:8, ph:6, type:"s", plat:DP, po:"6yy9nQlFt2l6UVWzrfhszFCaZ5C.jpg", bd:"ldz9THIHaV4orMsUrPT1nlQF51T.jpg", yt:"wHuWmjXsReU", d:"Stuntman en acteur Simon Williams jaagt op zijn doorbraak — een satire op Hollywood." },
+};
+
+const ORDERS = {
+  release: {
+    name: "Releasevolgorde",
+    desc: "Zoals de wereld ze beleefde, van Iron Man (2008) tot en met de bioscoop van nu. De aanbevolen route voor een eerste keer.",
+    ids: ["im1","hulk","im2","thor","ca1","av1","im3","th2","ca2","gotg","av2","ant","ca3","ds1","gotg2","spm1","th3","bp1","av3","ant2","cm","av4","spm2","bw","sc","et","spm3","ds2","th4","bp2","ant3","gotg3","mvls","dpw","ca4","tb","ff","bnd","doom"],
+  },
+  chrono: {
+    name: "Chronologisch",
+    desc: "Op de tijdlijn van het MCU zelf: begin in WOII met Captain America en volg de gebeurtenissen in verhaalvolgorde.",
+    ids: ["ca1","cm","im1","im2","hulk","thor","av1","im3","th2","ca2","gotg","gotg2","av2","ant","ca3","bw","bp1","spm1","ds1","th3","ant2","av3","av4","sc","et","spm2","spm3","ds2","th4","bp2","ant3","gotg3","mvls","dpw","ca4","tb","ff","bnd","doom"],
+  },
+  essentials: {
+    name: "Essentials",
+    desc: "Weinig tijd? De kernfilms van de Infinity Saga plus het beste erna — het grote verhaal in 12 films.",
+    ids: ["im1","av1","ca2","gotg","av2","ca3","th3","bp1","av3","cm","av4","spm3"],
+  },
+  alles: {
+    name: "Alles",
+    desc: "Het complete MCU in releasevolgorde: alle films plus de Disney+-series, specials en One-Shot-korte films.",
+    fan: ["av4","wv","wbn"],
+    ids: ["im1","hulk","im2","thor","ca1","os1","os2","av1","os3","im3","os4","th2","os5","ca2","gotg","av2","ant","ca3","ds1","gotg2","spm1","th3","bp1","av3","ant2","cm","av4","spm2","wv","fws","loki","bw","whatif","sc","et","hawk","spm3","moon","ds2","msm","th4","groot","shehulk","wbn","bp2","ghs","ant3","gotg3","si","mvls","echo","dpw","agatha","ca4","ddba","tb","ih","ff","eow","wm","bnd","doom"],
+  },
+};
+
+// ---------- State ----------
+const store = {
+  get watched() { return new Set(JSON.parse(localStorage.getItem("mm-watched") || "[]")); },
+  toggle(id) {
+    const w = this.watched;
+    w.has(id) ? w.delete(id) : w.add(id);
+    localStorage.setItem("mm-watched", JSON.stringify([...w]));
+  },
+  get order() { return localStorage.getItem("mm-order"); },
+  set order(v) { v ? localStorage.setItem("mm-order", v) : localStorage.removeItem("mm-order"); },
+};
+
+const $ = (id) => document.getElementById(id);
+const poster = (f, w = "w342") => IMG + w + "/" + f.po;
+const backdrop = (f) => IMG + "w780/" + f.bd;
+const hours = (ids) => Math.round(ids.reduce((s, id) => s + (FILMS[id].min || 0), 0) / 60);
+const TYPES = { s: "Serie", k: "Short", x: "Special" };
+const typeLabel = (f) => TYPES[f.type] || "Film";
+// Duur-tekst: series tonen afleveringen, al het andere minuten
+const fmt = (f) => f.eps
+  ? `${f.eps} afl.${f.seasons ? ` · ${f.seasons} seizoenen` : ""}`
+  : (f.min ? `${f.min} min` : "duur nog onbekend");
+// ponytail: 90 dagen als bioscoopvenster-heuristiek; klopt ruim genoeg voor een badge
+function status(f) {
+  if (!f.date) return null;
+  const diff = (Date.now() - new Date(f.date)) / 864e5;
+  if (diff < 0) return { label: `Verwacht · ${new Date(f.date).toLocaleDateString("nl-NL", { month: "long", year: "numeric" })}`, chip: String(f.y) };
+  if (diff < 90) return { label: "Nu in de bioscoop", chip: "Bios" };
+  return null;
+}
+const ICON_CHECK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
+// ---------- Intro ----------
+(function intro() {
+  const el = $("intro");
+  const seen = localStorage.getItem("mm-intro");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const end = () => el.classList.add("hide");
+  el.addEventListener("click", end);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); end(); }
+  });
+  if (seen || reduced) {
+    // Terugkerend bezoek: korte wordmark-beat i.p.v. de volledige flipbook
+    el.classList.add("quick");
+    setTimeout(end, reduced ? 1600 : 1100);
+  } else {
+    // ponytail: 8 posters volstaan voor het flip-effect; meer laadt alleen maar trager
+    const flip = ["av1","gotg","th3","bp1","av3","spm3","dpw","av4"];
+    $("montage").innerHTML = flip.map((id, i) =>
+      `<img src="${poster(FILMS[id], "w342")}" alt="" style="animation-delay:${(i * 0.3).toFixed(2)}s">`).join("");
+    setTimeout(end, 4000);
+  }
+  localStorage.setItem("mm-intro", "1");
+})();
+
+// ---------- Router ----------
+function render() {
+  const order = ORDERS[store.order];
+  order ? renderWatch(order) : renderPick();
+}
+
+// ---------- Route picker ----------
+function renderPick() {
+  $("pick").classList.remove("hidden");
+  $("watch").classList.add("hidden");
+  $("btn-switch").classList.add("hidden");
+  $("counter").textContent = "";
+  $("bar").style.width = "0";
+
+  $("routes").innerHTML = Object.entries(ORDERS).map(([key, o]) => {
+    const unit = o.ids.some(id => FILMS[id].type) ? "titels" : "films";
+    return `
+    <button class="route" data-order="${key}" aria-label="${o.name}: ${o.ids.length} ${unit}, ongeveer ${hours(o.ids)} uur">
+      <span class="fan" aria-hidden="true">${(o.fan || o.ids.slice(0, 3)).map(id =>
+        `<img src="${poster(FILMS[id], "w185")}" alt="" onerror="this.style.visibility='hidden'">`).join("")}</span>
+      <span>
+        <h3>${o.name}</h3>
+        <p>${o.desc}</p>
+        <span class="facts">${o.ids.length} ${unit} <span>· ± ${hours(o.ids)} uur kijktijd</span></span>
+      </span>
+    </button>`;
+  }).join("");
+  document.querySelectorAll(".route").forEach(b =>
+    b.addEventListener("click", () => { store.order = b.dataset.order; render(); window.scrollTo(0, 0); }));
+}
+
+// ---------- Watch screen ----------
+function renderWatch(order) {
+  $("pick").classList.add("hidden");
+  $("watch").classList.remove("hidden");
+  $("btn-switch").classList.remove("hidden");
+  $("route-name").textContent = order.name;
+
+  const watched = store.watched;
+  const nextId = order.ids.find(id => !watched.has(id));
+  const done = order.ids.filter(id => watched.has(id)).length;
+
+  $("bar").style.width = (done / order.ids.length * 100) + "%";
+  $("counter").innerHTML = `${done}<em> / ${order.ids.length}</em>`;
+
+  const hero = $("hero");
+  if (nextId) {
+    const f = FILMS[nextId];
+    hero.innerHTML = `
+      <div class="hero">
+        <div class="backdrop"><img src="${backdrop(f)}"
+          srcset="${IMG}w780/${f.bd} 780w, ${IMG}w1280/${f.bd} 1280w"
+          sizes="(min-width: 760px) 1068px, 100vw"
+          alt="" onerror="this.style.display='none'"></div>
+        <div class="content">
+          <img class="poster" src="${poster(f)}" alt="Poster van ${f.t}" onerror="this.style.display='none'">
+          <div class="info">
+            <h3>${f.t}</h3>
+            <p class="meta"><b>${f.y}</b> · ${fmt(f)} · Fase ${f.ph} · ${status(f) ? status(f).label : f.plat}</p>
+            <div class="cta">
+              <button class="btn btn-primary" id="hero-done">${ICON_CHECK} Gekeken</button>
+              <button class="btn btn-ghost" id="hero-info">Details</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    $("hero-done").onclick = () => { store.toggle(nextId); showToast(nextId); render(); };
+    $("hero-info").onclick = () => openSheet(nextId);
+  } else {
+    hero.innerHTML = `
+      <div class="hero finale">
+        <div class="content">
+          <h3>Marathon voltooid</h3>
+          <p>Alle ${order.ids.length} films van deze route gezien — Excelsior! Kies een andere route of vink een film uit om opnieuw te kijken.</p>
+          <div class="cta"><button class="btn btn-ghost" id="hero-switch">Kies een andere route</button></div>
+        </div>
+      </div>`;
+    $("hero-switch").onclick = () => { store.order = null; render(); };
+  }
+
+  $("grid").innerHTML = order.ids.map((id, i) => {
+    const f = FILMS[id];
+    const w = watched.has(id);
+    return `
+      <button class="tile ${w ? "watched" : ""}${id === nextId ? " next" : ""}" data-id="${id}"
+        aria-label="${f.t} (${f.y}), ${typeLabel(f).toLowerCase()} ${i + 1}${w ? ", gekeken" : ""}">
+        <img src="${poster(f)}" alt="" loading="lazy"
+          onerror="this.remove();this.parentElement.insertAdjacentHTML('afterbegin','<span class=\'fallback\'>${f.t.replace(/'/g, "\\'")}</span>')">
+        <span class="num">${i + 1}</span>
+        ${f.type ? `<span class="kind">${typeLabel(f)}</span>` : ""}
+        ${status(f) ? `<span class="kind hot">${status(f).chip}</span>` : ""}
+        <span class="done">${ICON_CHECK}</span>
+      </button>`;
+  }).join("");
+  document.querySelectorAll(".tile").forEach(b =>
+    b.addEventListener("click", () => openSheet(b.dataset.id)));
+}
+$("btn-switch").addEventListener("click", () => { store.order = null; render(); });
+
+// ---------- Detail sheet ----------
+let lastFocus = null;
+function openSheet(id) {
+  const f = FILMS[id];
+  const w = store.watched.has(id);
+  lastFocus = document.activeElement;
+  $("sheet").innerHTML = `
+    <div class="sheet-head" id="sheet-head">
+      <img class="bd" src="${backdrop(f)}" alt="" onerror="this.style.display='none'">
+      ${f.yt ? `<button class="play-trailer" id="btn-trailer" aria-label="Trailer afspelen">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <span>Trailer</span>
+      </button>` : ""}
+      <button class="sheet-close" id="sheet-close" aria-label="Sluiten">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-top">
+        <img class="poster" src="${poster(f)}" alt="Poster van ${f.t}" onerror="this.style.display='none'">
+        <div>
+          <h3>${f.t}</h3>
+          <p class="meta">${typeLabel(f)} · ${f.y} · ${fmt(f)} · MCU Fase ${f.ph}</p>
+        </div>
+      </div>
+      <p class="desc">${f.d}</p>
+      <div class="avail">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M8 23h8"/></svg>
+        <span id="avail-text">${status(f) ? `<b>${status(f).label}</b>` : `Te zien op <b>${f.plat}</b>`}</span>
+      </div>
+      <div class="sheet-actions">
+        ${w
+          ? `<button class="btn-undo" id="sheet-toggle">Markeer als niet gekeken</button>`
+          : `<button class="btn btn-primary" id="sheet-toggle">${ICON_CHECK} Gekeken</button>`}
+      </div>
+    </div>`;
+  $("overlay").classList.add("open");
+  $("overlay").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  fetchProvider(id).then(v => {
+    const el = $("avail-text");
+    if (v && el && $("sheet").contains(el)) el.innerHTML = `Nu te zien op <b>${v}</b>`;
+  });
+  $("sheet-toggle").onclick = () => { store.toggle(id); if (!w) showToast(id); closeSheet(); render(); };
+  const bt = $("btn-trailer");
+  if (bt) bt.onclick = () => openTrailer(f);
+  $("sheet-close").onclick = closeSheet;
+  requestAnimationFrame(() => $("sheet-close").focus());
+}
+function closeSheet() {
+  $("overlay").classList.remove("open");
+  $("overlay").setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+  if (lastFocus) lastFocus.focus();
+}
+$("overlay").addEventListener("click", (e) => { if (e.target.id === "overlay") closeSheet(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if ($("trailer").classList.contains("open")) closeTrailer();
+  else if ($("overlay").classList.contains("open")) closeSheet();
+});
+$("sheet").addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const f = [...$("sheet").querySelectorAll("button, a[href]")];
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+// ---------- Trailer (fullscreen, ook liggend op mobiel) ----------
+function openTrailer(f) {
+  $("trailer-frame").src = `https://www.youtube-nocookie.com/embed/${f.yt}?autoplay=1&rel=0`;
+  $("trailer").classList.add("open");
+  // Echt fullscreen waar het kan (Android/desktop); iOS toont de overlay + YouTube's eigen fullscreen-knop
+  const req = $("trailer").requestFullscreen || $("trailer").webkitRequestFullscreen;
+  if (req) { try { req.call($("trailer")).catch(() => {}); } catch {} }
+}
+function closeTrailer() {
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  $("trailer").classList.remove("open");
+  $("trailer-frame").src = "";
+}
+$("trailer-close").addEventListener("click", closeTrailer);
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && $("trailer").classList.contains("open")) closeTrailer();
+});
+
+// ---------- Live streamingdata (TMDB watch providers, data van JustWatch) ----------
+// ponytail: cache 24u in localStorage; zonder key valt de app terug op de vaste indicatie
+async function fetchProvider(id) {
+  const f = FILMS[id];
+  if (!TMDB_KEY || !f.id) return null;
+  const cacheKey = `mm-prov-${f.id}`;
+  const hit = JSON.parse(localStorage.getItem(cacheKey) || "null");
+  if (hit && Date.now() - hit.at < 864e5) return hit.v;
+  try {
+    const kind = f.tv ? "tv" : "movie";
+    const r = await fetch(`https://api.themoviedb.org/3/${kind}/${f.id}/watch/providers?api_key=${TMDB_KEY}`);
+    const nl = (await r.json()).results?.NL;
+    const v = nl?.flatrate?.map(p => p.provider_name).slice(0, 2).join(" / ") || null;
+    localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), v }));
+    return v;
+  } catch { return null; }
+}
+
+// ---------- Toast (ongedaan maken) ----------
+let toastTimer = null, toastId = null;
+function showToast(id) {
+  toastId = id;
+  $("toast-msg").textContent = `${FILMS[id].t} afgevinkt`;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("show"), 5000);
+}
+$("toast-undo").addEventListener("click", () => {
+  if (toastId) { store.toggle(toastId); toastId = null; }
+  $("toast").classList.remove("show");
+  render();
+});
+
+// ---------- Init ----------
+const preset = new URLSearchParams(location.search).get("route");
+if (preset && ORDERS[preset]) store.order = preset;
+render();
+</script>
+</body>
+</html>
