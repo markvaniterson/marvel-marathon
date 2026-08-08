@@ -1,3 +1,7 @@
+---
+// Login-knop verschijnt pas zodra er een OAuth-provider is geconfigureerd (zie README)
+const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH_APPLE_ID);
+---
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -9,7 +13,7 @@
 <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
-<style>
+<style is:global>
   :root {
     --bg: #07080c;
     --surface: #10131a;
@@ -398,6 +402,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <button class="icon-btn hidden" id="btn-switch" aria-label="Andere kijkvolgorde kiezen" title="Andere kijkvolgorde">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
     </button>
+    {authReady && (
+      <a class="icon-btn" id="btn-auth" href="/api/auth/signin" aria-label="Inloggen" title="Inloggen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+      </a>
+    )}
   </div>
   <div class="progress-track"><i id="bar" style="width:0"></i></div>
 </header>
@@ -437,16 +446,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <button id="toast-undo">Ongedaan maken</button>
 </div>
 
-<script>
+<script is:inline>
 // ---------- Data ----------
-// TMDB API-key voor live "nu te zien op"-data: één keer openen met ?tmdbkey=JOUWKEY, daarna onthouden.
-// Bewust niet in de code — deze file staat op GitHub.
-const keyParam = new URLSearchParams(location.search).get("tmdbkey");
-if (keyParam) {
-  localStorage.setItem("mm-tmdb-key", keyParam);
-  history.replaceState(null, "", location.pathname);
-}
-const TMDB_KEY = localStorage.getItem("mm-tmdb-key") || "";
 const IMG = "https://image.tmdb.org/t/p/";
 const DP = "Disney+";
 const SONY = "Disney+ / Netflix (wisselt)";
@@ -792,19 +793,18 @@ document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && $("trailer").classList.contains("open")) closeTrailer();
 });
 
-// ---------- Live streamingdata (TMDB watch providers, data van JustWatch) ----------
-// ponytail: cache 24u in localStorage; zonder key valt de app terug op de vaste indicatie
+// ---------- Live streamingdata (via eigen /api/providers, key blijft server-side) ----------
+// ponytail: cache 24u in localStorage; bij een falende API valt de app terug op de vaste indicatie
 async function fetchProvider(id) {
   const f = FILMS[id];
-  if (!TMDB_KEY || !f.id) return null;
+  if (!f.id) return null;
   const cacheKey = `mm-prov-${f.id}`;
   const hit = JSON.parse(localStorage.getItem(cacheKey) || "null");
   if (hit && Date.now() - hit.at < 864e5) return hit.v;
   try {
-    const kind = f.tv ? "tv" : "movie";
-    const r = await fetch(`https://api.themoviedb.org/3/${kind}/${f.id}/watch/providers?api_key=${TMDB_KEY}`);
-    const nl = (await r.json()).results?.NL;
-    const v = nl?.flatrate?.map(p => p.provider_name).slice(0, 2).join(" / ") || null;
+    const r = await fetch(`/api/providers?kind=${f.tv ? "tv" : "movie"}&id=${f.id}`);
+    if (!r.ok) return null;
+    const v = (await r.json()).providers.slice(0, 2).join(" / ") || null;
     localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), v }));
     return v;
   } catch { return null; }
@@ -829,6 +829,20 @@ $("toast-undo").addEventListener("click", () => {
 const preset = new URLSearchParams(location.search).get("route");
 if (preset && ORDERS[preset]) store.order = preset;
 render();
+
+// ---------- Sessie (alleen actief als er een login-knop is) ----------
+const authBtn = $("btn-auth");
+if (authBtn) fetch("/api/auth/session")
+  .then(r => r.ok ? r.json() : null)
+  .then(s => {
+    if (!s?.user) return;
+    authBtn.href = "/api/auth/signout";
+    authBtn.setAttribute("aria-label", `Uitloggen (${s.user.name || s.user.email})`);
+    authBtn.title = "Uitloggen";
+    if (s.user.image) authBtn.innerHTML =
+      `<img src="${s.user.image}" alt="" style="width:26px;height:26px;border-radius:50%">`;
+  })
+  .catch(() => {});
 </script>
 </body>
 </html>
