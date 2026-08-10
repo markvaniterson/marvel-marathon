@@ -119,6 +119,8 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
+    /* Geïnstalleerd op iPhone (standalone) loopt de pagina onder het island/statusbalk door */
+    padding-top: env(safe-area-inset-top);
   }
   .bar {
     max-width: 1100px; margin: 0 auto;
@@ -155,11 +157,25 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
   #pick .lede { color: var(--muted); font-size: .95rem; margin-top: -.3rem; max-width: 60ch; }
   .routes { display: grid; gap: .9rem; margin-top: 1.1rem; }
   .route {
+    position: relative;
     display: flex; align-items: center; gap: 1rem; text-align: left;
     background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
     padding: 1rem; color: var(--text);
     transition: border-color .15s, transform .15s;
   }
+  .route.active { border-color: var(--red); }
+  .route .active-chip {
+    position: absolute; top: .8rem; right: .8rem;
+    font-family: var(--display); font-size: .95rem; letter-spacing: .05em;
+    color: #fff; background: var(--red);
+    padding: .1rem .5rem 0; border-radius: 6px;
+  }
+  .route-progress {
+    display: block; height: 3px; border-radius: 2px; overflow: hidden;
+    background: var(--surface2); margin-top: .6rem;
+  }
+  .route-progress i { display: block; height: 100%; background: var(--red); }
+  .route > span:last-child { flex: 1; min-width: 0; display: block; }
   @media (hover: hover) {
     .route:hover { border-color: var(--red); transform: translateY(-2px); }
     .tile:hover { transform: scale(1.03); }
@@ -467,7 +483,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <main>
   <section id="pick" class="hidden">
     <h2 class="row">Kies je route</h2>
-    <p class="lede">Drie manieren om het Marvel Cinematic Universe te beleven. Je voortgang telt in elke route mee.</p>
+    <p class="lede">Kies hoe jij het Marvel Cinematic Universe beleeft. Je voortgang telt in elke route mee.</p>
     <div class="routes" id="routes"></div>
   </section>
 
@@ -611,6 +627,12 @@ const ORDERS = {
     fan: ["av4","wv","wbn"],
     ids: ["im1","hulk","im2","thor","ca1","os1","os2","av1","os3","im3","os4","th2","os5","ca2","gotg","av2","ant","ca3","ds1","gotg2","spm1","th3","bp1","av3","ant2","cm","av4","spm2","wv","fws","loki","bw","whatif","sc","et","hawk","spm3","moon","ds2","msm","th4","groot","shehulk","wbn","bp2","ghs","ant3","gotg3","si","mvls","echo","dpw","agatha","ca4","ddba","tb","ih","ff","eow","wm","bnd","doom"],
   },
+  alleschrono: {
+    name: "Alles chronologisch",
+    desc: "Het complete MCU op de tijdlijn van het universum zelf: films, series, specials en One-Shots in verhaalvolgorde.",
+    fan: ["ca1","loki","wbn"],
+    ids: ["ca1","os4","cm","im1","im2","hulk","os1","thor","os2","av1","os3","im3","os5","th2","ca2","gotg","gotg2","av2","ant","ca3","bw","bp1","spm1","ds1","th3","ant2","av3","av4","loki","whatif","wv","fws","sc","et","spm2","spm3","hawk","ds2","moon","msm","th4","groot","shehulk","wbn","bp2","ghs","ant3","gotg3","si","mvls","echo","dpw","agatha","ca4","ddba","tb","ih","eow","wm","ff","bnd","doom"],
+  },
 };
 
 // ---------- State ----------
@@ -708,20 +730,30 @@ function render() {
 function renderPick() {
   $("pick").classList.remove("hidden");
   $("watch").classList.add("hidden");
-  $("btn-switch").classList.add("hidden");
-  $("counter").textContent = "";
-  $("bar").style.width = "0";
+  // Met een actieve route blijven teller en voortgangsbalk in de header staan
+  if (!store.order) {
+    $("btn-switch").classList.add("hidden");
+    $("counter").textContent = "";
+    $("bar").style.width = "0";
+  }
 
+  const watched = store.watched;
   $("routes").innerHTML = Object.entries(ORDERS).map(([key, o]) => {
     const unit = o.ids.some(id => FILMS[id].type) ? "titels" : "films";
+    const done = o.ids.filter(id => watched.has(id)).length;
+    const left = hours(o.ids.filter(id => !watched.has(id)));
+    const active = key === store.order;
     return `
-    <button class="route" data-order="${key}" aria-label="${o.name}: ${o.ids.length} ${unit}, ongeveer ${hours(o.ids)} uur">
+    <button class="route${active ? " active" : ""}" data-order="${key}"
+      aria-label="${o.name}: ${done} van ${o.ids.length} ${unit} gezien, nog ongeveer ${left} uur${active ? " (actieve route)" : ""}">
+      ${active ? `<span class="active-chip">Actief</span>` : ""}
       <span class="fan" aria-hidden="true">${(o.fan || o.ids.slice(0, 3)).map(id =>
         `<img src="${poster(FILMS[id], "w185")}" alt="" onerror="this.style.visibility='hidden'">`).join("")}</span>
       <span>
         <h3>${o.name}</h3>
         <p>${o.desc}</p>
-        <span class="facts">${o.ids.length} ${unit} <span>· ± ${hours(o.ids)} uur kijktijd</span></span>
+        <span class="facts">${done} van ${o.ids.length} ${unit} gezien <span>· ± ${left} uur te gaan</span></span>
+        <span class="route-progress" aria-hidden="true"><i style="width:${(done / o.ids.length * 100).toFixed(1)}%"></i></span>
       </span>
     </button>`;
   }).join("");
@@ -775,7 +807,7 @@ function renderWatch(order) {
           <div class="cta"><button class="btn btn-ghost" id="hero-switch">Kies een andere route</button></div>
         </div>
       </div>`;
-    $("hero-switch").onclick = () => { store.order = null; render(); };
+    $("hero-switch").onclick = () => { renderPick(); window.scrollTo(0, 0); };
   }
 
   $("grid").innerHTML = order.ids.map((id, i) => {
@@ -795,7 +827,8 @@ function renderWatch(order) {
   document.querySelectorAll(".tile").forEach(b =>
     b.addEventListener("click", () => openSheet(b.dataset.id)));
 }
-$("btn-switch").addEventListener("click", () => { store.order = null; render(); });
+// Routekiezer openen zonder de actieve route te vergeten (zodat "Actief" en voortgang tonen)
+$("btn-switch").addEventListener("click", () => { renderPick(); window.scrollTo(0, 0); });
 
 // ---------- Detail sheet ----------
 let lastFocus = null;
