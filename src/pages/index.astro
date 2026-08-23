@@ -359,6 +359,11 @@ const authReady = Boolean(import.meta.env.AUTH_GOOGLE_ID || import.meta.env.AUTH
   .avail b { font-weight: 600; }
   .avail { min-height: 56px; }
   .sheet-actions { display: flex; gap: .7rem; }
+  .sheet-actions .not-yet {
+    flex: 1; text-align: center; color: var(--muted); font-size: .92rem;
+    border: 1px dashed var(--line); border-radius: 10px; padding: .95rem;
+  }
+  .sheet-actions .not-yet::first-letter { text-transform: uppercase; }
   .sheet-actions .btn-primary, .sheet-actions .btn-undo { flex: 1; justify-content: center; padding: .95rem; font-size: 1rem; }
   .btn-undo { background: var(--surface2); color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font-weight: 700; }
   .btn-undo:hover { color: var(--text); border-color: var(--muted); }
@@ -686,6 +691,7 @@ const typeLabel = (f) => TYPES[f.type] || "Film";
 const fmt = (f) => f.eps
   ? `${f.eps} afl.${f.seasons ? ` · ${f.seasons} seizoenen` : ""}`
   : (f.min ? `${f.min} min` : "duur nog onbekend");
+const released = (f) => !f.date || new Date(f.date) <= new Date();
 // ponytail: 90 dagen als bioscoopvenster-heuristiek; klopt ruim genoeg voor een badge
 function status(f) {
   if (!f.date) return null;
@@ -740,20 +746,22 @@ function renderPick() {
   const watched = store.watched;
   $("routes").innerHTML = Object.entries(ORDERS).map(([key, o]) => {
     const unit = o.ids.some(id => FILMS[id].type) ? "titels" : "films";
-    const done = o.ids.filter(id => watched.has(id)).length;
-    const left = hours(o.ids.filter(id => !watched.has(id)));
+    const rel = o.ids.filter(id => released(FILMS[id]));
+    const upcoming = o.ids.length - rel.length;
+    const done = rel.filter(id => watched.has(id)).length;
+    const left = hours(rel.filter(id => !watched.has(id)));
     const active = key === store.order;
     return `
     <button class="route${active ? " active" : ""}" data-order="${key}"
-      aria-label="${o.name}: ${done} van ${o.ids.length} ${unit} gezien, nog ongeveer ${left} uur${active ? " (actieve route)" : ""}">
+      aria-label="${o.name}: ${done} van ${rel.length} ${unit} gezien, nog ongeveer ${left} uur${active ? " (actieve route)" : ""}">
       ${active ? `<span class="active-chip">Actief</span>` : ""}
       <span class="fan" aria-hidden="true">${(o.fan || o.ids.slice(0, 3)).map(id =>
         `<img src="${poster(FILMS[id], "w185")}" alt="" onerror="this.style.visibility='hidden'">`).join("")}</span>
       <span>
         <h3>${o.name}</h3>
         <p>${o.desc}</p>
-        <span class="facts">${done} van ${o.ids.length} ${unit} gezien <span>· ± ${left} uur te gaan</span></span>
-        <span class="route-progress" aria-hidden="true"><i style="width:${(done / o.ids.length * 100).toFixed(1)}%"></i></span>
+        <span class="facts">${done} van ${rel.length} ${unit} gezien <span>· ± ${left} uur te gaan${upcoming ? ` · ${upcoming} verwacht` : ""}</span></span>
+        <span class="route-progress" aria-hidden="true"><i style="width:${(done / rel.length * 100).toFixed(1)}%"></i></span>
       </span>
     </button>`;
   }).join("");
@@ -769,11 +777,13 @@ function renderWatch(order) {
   $("route-name").textContent = order.name;
 
   const watched = store.watched;
-  const nextId = order.ids.find(id => !watched.has(id));
-  const done = order.ids.filter(id => watched.has(id)).length;
+  // Onuitgebrachte titels tellen niet mee en kunnen geen "volgende film" zijn
+  const releasedIds = order.ids.filter(id => released(FILMS[id]));
+  const nextId = releasedIds.find(id => !watched.has(id));
+  const done = releasedIds.filter(id => watched.has(id)).length;
 
-  $("bar").style.width = (done / order.ids.length * 100) + "%";
-  $("counter").innerHTML = `${done}<em> / ${order.ids.length}</em>`;
+  $("bar").style.width = (done / releasedIds.length * 100) + "%";
+  $("counter").innerHTML = `${done}<em> / ${releasedIds.length}</em>`;
 
   const hero = $("hero");
   if (nextId) {
@@ -799,15 +809,38 @@ function renderWatch(order) {
     $("hero-done").onclick = () => { store.toggle(nextId); showToast(nextId); render(); };
     $("hero-info").onclick = () => openSheet(nextId);
   } else {
-    hero.innerHTML = `
-      <div class="hero finale">
-        <div class="content">
-          <h3>Marathon voltooid</h3>
-          <p>Alle ${order.ids.length} films van deze route gezien — Excelsior! Kies een andere route of vink een film uit om opnieuw te kijken.</p>
-          <div class="cta"><button class="btn btn-ghost" id="hero-switch">Kies een andere route</button></div>
-        </div>
-      </div>`;
-    $("hero-switch").onclick = () => { renderPick(); window.scrollTo(0, 0); };
+    const upcomingId = order.ids.find(id => !released(FILMS[id]) && !watched.has(id));
+    if (upcomingId) {
+      const f = FILMS[upcomingId];
+      hero.innerHTML = `
+        <div class="hero">
+          <div class="backdrop"><img src="${backdrop(f)}"
+            srcset="${IMG}w780/${f.bd} 780w, ${IMG}w1280/${f.bd} 1280w"
+            sizes="(min-width: 760px) 1068px, 100vw"
+            alt="" onerror="this.style.display='none'"></div>
+          <div class="content">
+            <img class="poster" src="${poster(f)}" alt="Poster van ${f.t}" onerror="this.style.display='none'">
+            <div class="info">
+              <h3>${f.t}</h3>
+              <p class="meta">Je bent helemaal bij! Deze verschijnt pas — <b>${status(f)?.label ?? f.y}</b></p>
+              <div class="cta">
+                <button class="btn btn-ghost" id="hero-info">Details &amp; trailer</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      $("hero-info").onclick = () => openSheet(upcomingId);
+    } else {
+      hero.innerHTML = `
+        <div class="hero finale">
+          <div class="content">
+            <h3>Marathon voltooid</h3>
+            <p>Alle ${order.ids.length} titels van deze route gezien — Excelsior! Kies een andere route of vink een titel uit om opnieuw te kijken.</p>
+            <div class="cta"><button class="btn btn-ghost" id="hero-switch">Kies een andere route</button></div>
+          </div>
+        </div>`;
+      $("hero-switch").onclick = () => { renderPick(); window.scrollTo(0, 0); };
+    }
   }
 
   $("grid").innerHTML = order.ids.map((id, i) => {
@@ -861,9 +894,11 @@ function openSheet(id) {
         <span id="avail-text">${status(f) ? `<b>${status(f).label}</b>` : `Te zien op <b>${f.plat}</b>`}</span>
       </div>
       <div class="sheet-actions">
-        ${w
-          ? `<button class="btn-undo" id="sheet-toggle">Markeer als niet gekeken</button>`
-          : `<button class="btn btn-primary" id="sheet-toggle">${ICON_CHECK} Gekeken</button>`}
+        ${!released(f)
+          ? `<p class="not-yet">Nog niet te zien — ${status(f)?.label ?? f.y}</p>`
+          : w
+            ? `<button class="btn-undo" id="sheet-toggle">Markeer als niet gekeken</button>`
+            : `<button class="btn btn-primary" id="sheet-toggle">${ICON_CHECK} Gekeken</button>`}
       </div>
     </div>`;
   $("overlay").classList.add("open");
@@ -873,7 +908,8 @@ function openSheet(id) {
     const el = $("avail-text");
     if (v && el && $("sheet").contains(el)) el.innerHTML = `Nu te zien op <b>${v}</b>`;
   });
-  $("sheet-toggle").onclick = () => { store.toggle(id); if (!w) showToast(id); closeSheet(); render(); };
+  const st = $("sheet-toggle");
+  if (st) st.onclick = () => { store.toggle(id); if (!w) showToast(id); closeSheet(); render(); };
   const bt = $("btn-trailer");
   if (bt) bt.onclick = () => openTrailer(f);
   $("sheet-close").onclick = closeSheet;
