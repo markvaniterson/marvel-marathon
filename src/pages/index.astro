@@ -576,6 +576,10 @@ const FILMS = {
   tb:   { id:986056, t:"Thunderbolts*", y:2025, min:127, ph:5, plat:DP, po:"tDBlg4OaRBkKX7iM9Uin2awpqqQ.jpg", bd:"rthMuZfFv4fqEU4JVbgSW9wQ8rs.jpg", yt:"Vo3yyHEUssY", d:"Een team antihelden — Yelena, Bucky, Red Guardian e.a. — wordt in een dodelijke val gelokt." },
   ff:   { id:617126, t:"The Fantastic Four: First Steps", y:2025, min:115, ph:6, plat:DP, po:"33eW6nG6RgbF9BEJghivnCGc88H.jpg", bd:"s94NjfKkcSczZ1FembwmQZwsuwY.jpg", yt:"AUGEciw8xlE", d:"Marvels eerste familie in een retro-futuristische wereld, tegenover de planeetverslinder Galactus." },
 
+  // Legacy (Fox) — aanbevolen voorbereiding op de komst van de X-Men, geen MCU-fase
+  xmen: { id:36657, t:"X-Men", y:2000, min:105, ph:null, plat:DP, po:"bRDAc4GogyS9ci3ow7UnInOcriN.jpg", bd:"3QUVzbcNyfGe3ocWkYAT8emK8Co.jpg", yt:"s4Wqw8tqgdM", d:"Professor Xavier en zijn mutanten nemen het op tegen Magneto's Brotherhood. Waar het mutantenverhaal begon." },
+  x2:   { id:36658, t:"X2", y:2003, min:134, ph:null, plat:DP, po:"bst4alFUXCxISwdRUKSMhhkrX1M.jpg", bd:"7TYITrR804tLITNur3b8VLCK6tw.jpg", yt:"yVzqz_zpP20", d:"De X-Men moeten noodgedwongen samenwerken met Magneto wanneer kolonel Stryker alle mutanten wil uitroeien." },
+
   // Bioscoop & verwacht
   bnd:  { id:969681, t:"Spider-Man: Brand New Day", y:2026, min:120, ph:6, plat:"Bioscoop", date:"2026-07-30", po:"aYBkFizFivFLorXIOoQTNis2rZi.jpg", bd:"qeQJx07rK2xm8SD2sJxFKhE7gs0.jpg", yt:"P3uI5sLosKU", d:"Peter Parker begint met een schone lei: niemand weet meer wie hij is. Het volgende Spider-Man-hoofdstuk in het MCU." },
   doom: { id:1003596, t:"Avengers: Doomsday", y:2026, min:null, ph:6, plat:"Bioscoop", date:"2026-12-18", po:"bh2OuKvq19jBHsloUVCfPSZZw81.jpg", bd:"s4v0UX1anfXm0UvloLsTTJ4v222.jpg", yt:"irVNGjRFZGk", d:"De Avengers, de Fantastic Four en de X-Men tegenover Doctor Doom. De opmaat naar Secret Wars." },
@@ -625,6 +629,12 @@ const ORDERS = {
     name: "Essentials",
     desc: "Weinig tijd? De kernfilms van de Infinity Saga plus het beste erna — het grote verhaal in 12 films.",
     ids: ["im1","av1","ca2","gotg","av2","ca3","th3","bp1","av3","cm","av4","spm3"],
+  },
+  xmen: {
+    name: "X-Men voorbereiding",
+    desc: "Marvels aanbevolen kijklijst richting de komst van de X-Men: twee Fox-klassiekers plus de MCU-titels waarin mutanten en het multiversum samenkomen.",
+    fan: ["xmen","dpw","av4"],
+    ids: ["xmen","x2","ca1","av1","av3","av4","loki","sc","spm3","bp2","ds2","dpw","tb","ca4","ff"],
   },
   alles: {
     name: "Alles",
@@ -798,7 +808,7 @@ function renderWatch(order) {
           <img class="poster" src="${poster(f)}" alt="Poster van ${f.t}" onerror="this.style.display='none'">
           <div class="info">
             <h3>${f.t}</h3>
-            <p class="meta"><b>${f.y}</b> · ${fmt(f)} · Fase ${f.ph} · ${status(f) ? status(f).label : f.plat}</p>
+            <p class="meta"><b>${f.y}</b> · ${fmt(f)}${f.ph ? ` · Fase ${f.ph}` : ""} · ${status(f) ? status(f).label : f.plat}</p>
             <div class="cta">
               <button class="btn btn-primary" id="hero-done">${ICON_CHECK} Gekeken</button>
               <button class="btn btn-ghost" id="hero-info">Details</button>
@@ -885,7 +895,7 @@ function openSheet(id) {
         <img class="poster" src="${poster(f)}" alt="Poster van ${f.t}" onerror="this.style.display='none'">
         <div>
           <h3>${f.t}</h3>
-          <p class="meta">${typeLabel(f)} · ${f.y} · ${fmt(f)} · MCU Fase ${f.ph}</p>
+          <p class="meta">${typeLabel(f)} · ${f.y} · ${fmt(f)}${f.ph ? ` · MCU Fase ${f.ph}` : ""}</p>
         </div>
       </div>
       <p class="desc">${f.d}</p>
